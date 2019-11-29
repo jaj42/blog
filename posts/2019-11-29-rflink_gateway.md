@@ -43,9 +43,9 @@ If you run on Windows, you can also use the GUI tool provided in the firmware ar
 
 
 
-My KiCAD project for the daughter board is available here : https://framagit.org/jaj/rflink-gateway.
+My KiCAD project for the daughter board is available here : [https://framagit.org/jaj/rflink-gateway](https://framagit.org/jaj/rflink-gateway).
 
-You can order the PCB directly from OSH Park here: https://oshpark.com/shared_projects/cp3NoWn5.
+You can order the PCB directly from OSH Park here: [https://oshpark.com/shared_projects/cp3NoWn5](https://oshpark.com/shared_projects/cp3NoWn5).
 
 Most parts and devices listed above can be found very cheap from Chinese resellers.
 
