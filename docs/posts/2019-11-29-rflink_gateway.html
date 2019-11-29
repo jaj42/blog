@@ -46,9 +46,13 @@
 <p>In order to program the Mega board, I also used an AVR programmer. I went for the <a href="https://www.microchip.com/DevelopmentTools/ProductDetails/PartNO/ATAVRISP2">AVRISP mkII</a>. I don’t think this should be necessary however since the board should come preflashed with the Arduino bootloader.</p>
 <p>You need to download the RFLink firmware from the following location: http://www.rflink.nl/blog2/download and extract the RFLink.cpp.hex file which contains the actual binary firmware. Note that this is not an open source project. The source code for the firmware is not available. They do provide the source code for an old version of the firmware though.</p>
 <p>After you extracted the firmware, you can flash it directly over USB using the following command:</p>
-<p>​ avrdude -patmega2560 -cstk500v2 -P<strong>/dev/ttyUSBx</strong> -b115200 -D -Uflash:w:<strong>/path/to/</strong>RFLink.cpp.hex:i</p>
+<blockquote>
+<p>avrdude -patmega2560 -cstk500v2 -P<strong>/dev/ttyUSBx</strong> -b115200 -D -Uflash:w:<strong>/path/to/</strong>RFLink.cpp.hex:i</p>
+</blockquote>
 <p>or you can use the AVRISP mkII programmer using this command:</p>
-<p>​ avrdude -v -p atmega2560 -c avrispmkII -D -U flash:w:RFLink.cpp.hex:i</p>
+<blockquote>
+<p>avrdude -v -p atmega2560 -c avrispmkII -D -U flash:w:RFLink.cpp.hex:i</p>
+</blockquote>
 <p>If you run on Windows, you can also use the GUI tool provided in the firmware archive to flash the microcontroller.</p>
 <p>The KiCAD project for the board is freely available: https://framagit.org/jaj/rflink-gateway.</p>
 <p>You can order the PCB directly from OSH Park here: https://oshpark.com/shared_projects/cp3NoWn5.</p>

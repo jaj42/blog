@@ -32,11 +32,11 @@ You need to download the RFLink firmware from the following location: http://www
 
 After you extracted the firmware, you can flash it directly over USB using the following command:
 
-​	avrdude -patmega2560 -cstk500v2 -P**/dev/ttyUSBx** -b115200 -D -Uflash:w:**/path/to/**RFLink.cpp.hex:i   
+> avrdude -patmega2560 -cstk500v2 -P**/dev/ttyUSBx** -b115200 -D -Uflash:w:**/path/to/**RFLink.cpp.hex:i   
 
 or you can use the AVRISP mkII programmer using this command:
 
-​	avrdude -v  -p atmega2560 -c avrispmkII -D -U flash:w:RFLink.cpp.hex:i
+> avrdude -v  -p atmega2560 -c avrispmkII -D -U flash:w:RFLink.cpp.hex:i
 
 If you run on Windows, you can also use the GUI tool provided in the firmware archive to flash the microcontroller.
 
