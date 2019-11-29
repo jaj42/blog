@@ -4,7 +4,7 @@
         <meta charset="utf-8">
         <meta http-equiv="x-ua-compatible" content="ie=edge">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>jaj Blog - RFLink Gateway</title>
+        <title>jaj Blog - RFLink 433 MHz RF Gateway</title>
         <link rel="stylesheet" href="../css/default.css" />
     </head>
     <body>
@@ -20,7 +20,7 @@
         </header>
 
         <main role="main">
-            <h1>RFLink Gateway</h1>
+            <h1>RFLink 433 MHz RF Gateway</h1>
             <article>
     <section class="header">
         Posted on November 29, 2019
@@ -30,8 +30,8 @@
     </section>
     <section>
         <p><img src="2019-11-29-rflink_gateway/IMG_20191024_171635.jpg" style="zoom: 67%;" /></p>
-<p>In this blog post I would like to share my custom RFLink gateway built using the <a href="https://robotdyn.com/catalog/arduino/boards/matrix-led-8x8-module-32x32mm-driver-max7219-7221.html">RobotDyn Mega 2560 PRO</a> board which is a very neat board in my opinion. You can see it as an Arduino Mega clone using a more efficient board layout in order to achieve a smaller board size while still exposing all the relevant features of the microcontroller.</p>
-<p>I designed a child board with KiCAD using the instructions from the <a href="http://www.rflink.nl/blog2/wiring">RFLink website</a>. I used the Aurel RTX MID 5v transceiver since it is recommended by the RFLink team. The fact that it contains receiver and transmitter on the same board simplifies the wiring and enables you to use only one antenna. You could however use any other RF board as described on the site.</p>
+<p>In this blog post I would like to share my custom RFLink gateway built on top of the <a href="https://robotdyn.com/catalog/arduino/boards/matrix-led-8x8-module-32x32mm-driver-max7219-7221.html">RobotDyn Mega 2560 PRO</a> board. You can see the Mega 2560 PRO as an Arduino Mega clone using a more efficient board layout in order to achieve a smaller board size while still exposing all the relevant features of the microcontroller.</p>
+<p>I designed a daughter board using KiCAD with the instructions from the <a href="http://www.rflink.nl/blog2/wiring">RFLink website</a> in order to place the RF parts. I used the Aurel RTX MID 5v transceiver which is recommended by the RFLink team. The fact that it contains receiver and transmitter on the same board simplifies the wiring and enables you to use only one antenna. You could however use any other 433 Mhz RF TX/RX components as described on the site.</p>
 <p>Here is the full component list for this project:</p>
 <ul>
 <li><p>MEGA 2560 PRO Board</p></li>
@@ -40,23 +40,23 @@
 <li>10k resistor</li>
 <li><p>Bi-directional logic level converter</p></li>
 <li><p>SMA edge connector</p></li>
-<li><p>433Mhz SMA antenna</p></li>
+<li><p>433 Mhz SMA antenna</p></li>
 </ul>
-<p>The MEGA 2560 PRO board uses 3.3V logic levels internally and is not compatible with 5V logic, even though it is powered from 5V USB. It has an on-board LDO converter which provides 3.3V. This means it is not possible to directly hook up the Aurel RTX MID 5v transceiver which works on 5V. I added a <a href="https://www.sparkfun.com/products/12009">bi-directional logic level converter</a> to the design for this reason, in order to be able to get the devices to talk to each other. When looking around on the Internet, I saw that there is actually a 3.3V version of the Aurel RTX MID (called Aurel RTX MID 3v), which you could hook up directly. However, the 3.3V version appears to be even more difficult to find from resellers as the 5V version, so I went with the 5V version.</p>
-<p>In order to program the Mega board, I also used an AVR programmer. I went for the <a href="https://www.microchip.com/DevelopmentTools/ProductDetails/PartNO/ATAVRISP2">AVRISP mkII</a>. I don’t think this should be necessary however since the board should come preflashed with the Arduino bootloader.</p>
-<p>You need to download the RFLink firmware from the following location: http://www.rflink.nl/blog2/download and extract the RFLink.cpp.hex file which contains the actual binary firmware. Note that this is not an open source project. The source code for the firmware is not available. They do provide the source code for an old version of the firmware though.</p>
+<p>The MEGA 2560 PRO board uses 3.3V logic levels internally and is not compatible with 5V logic, even though it is powered from 5V USB. It has an on-board LDO converter which provides 3.3V. This means it is not possible to directly hook up the Aurel RTX MID 5v transceiver which works on 5V. I added a <a href="https://www.sparkfun.com/products/12009">bi-directional logic level converter</a> to the design for this reason, in order to be able to get the devices to talk to each other. When looking around on the Internet, I saw that there is actually a 3.3V version of the Aurel RTX MID (called Aurel RTX MID 3v), which you could hook up directly. However, the 3.3V version appears to be even more difficult to find from resellers than the 5V version, so I went with the 5V version.</p>
+<p>In order to program the Mega board, I used an AVR programmer. I went for the <a href="https://www.microchip.com/DevelopmentTools/ProductDetails/PartNO/ATAVRISP2">AVRISP mkII</a>. I don’t think this should be necessary since the board should come preflashed with the Arduino bootloader and you should be able to flash it directly over USB. Mine did not have an Arduino bootloader but this can be due to the fact that I tinkered with it in the past.</p>
+<p>You need to download the <a href="http://www.rflink.nl/blog2/download">RFLink firmware</a> and extract the RFLink.cpp.hex file which contains the actual binary firmware. (Note that RFLink is not an open source project. The source code for the firmware is not available. They do provide the source code for an old version of the firmware though).</p>
 <p>After you extracted the firmware, you can flash it directly over USB using the following command:</p>
 <blockquote>
-<p>avrdude -patmega2560 -cstk500v2 -P<strong>/dev/ttyUSBx</strong> -b115200 -D -Uflash:w:<strong>/path/to/</strong>RFLink.cpp.hex:i</p>
+<p>avrdude -p atmega2560 -c stk500v2 -P <strong>/dev/ttyUSBx</strong> -b 115200 -D -Uflash:w:<strong>/path/to/</strong>RFLink.cpp.hex:i</p>
 </blockquote>
 <p>or you can use the AVRISP mkII programmer using this command:</p>
 <blockquote>
-<p>avrdude -v -p atmega2560 -c avrispmkII -D -U flash:w:RFLink.cpp.hex:i</p>
+<p>avrdude -p atmega2560 -c avrispmkII -D -U flash:w:RFLink.cpp.hex:i</p>
 </blockquote>
-<p>If you run on Windows, you can also use the GUI tool provided in the firmware archive to flash the microcontroller.</p>
-<p>The KiCAD project for the board is freely available: https://framagit.org/jaj/rflink-gateway.</p>
+<p>If you run on Windows, you can also use the GUI tool provided in the firmware archive.</p>
+<p>My KiCAD project for the daughter board is available here : https://framagit.org/jaj/rflink-gateway.</p>
 <p>You can order the PCB directly from OSH Park here: https://oshpark.com/shared_projects/cp3NoWn5.</p>
-<p>Most parts and devices listed above can be found very cheap online from Chinese resellers.</p>
+<p>Most parts and devices listed above can be found very cheap from Chinese resellers.</p>
 <p>After you completed the board, it is possible to hook it up to home automation software over USB. At my place, I use it together with <a href="https://www.home-assistant.io/integrations/rflink/">Home Assistant</a> and a Raspberry Pi in order to control smart sockets.</p>
 <p>Here is a view of the fully assembled board. Maybe at some point I will design a box for it.</p>
 <p><img src="2019-11-29-rflink_gateway/IMG_20191024_215427.jpg" style="zoom:67%;" /></p>
