@@ -48,21 +48,21 @@ Most parts and devices listed above can be found very cheap online from Chinese 
 
 After you completed the board, it is possible to hook it up to home automation software over USB. At my place, I use it together with [Home Assistant](https://www.home-assistant.io/integrations/rflink/) and a Raspberry Pi in order to control smart sockets.
 
-
+Here is a view of the fully assembled board. Maybe at some point I will design a box for it.
 
 <img src="2019-11-29-rflink_gateway/IMG_20191024_215427.jpg" style="zoom:67%;" />
 
 Links:
 
-- https://robotdyn.com/catalog/arduino/boards/matrix-led-8x8-module-32x32mm-driver-max7219-7221.html
+- [https://robotdyn.com/catalog/arduino/boards/matrix-led-8x8-module-32x32mm-driver-max7219-7221.html](https://robotdyn.com/catalog/arduino/boards/matrix-led-8x8-module-32x32mm-driver-max7219-7221.html)
 
-- http://www.rflink.nl/blog2/wiring
+- [http://www.rflink.nl/blog2/wiring](http://www.rflink.nl/blog2/wiring)
 
-- https://www.sparkfun.com/products/12009
+- [https://www.sparkfun.com/products/12009](https://www.sparkfun.com/products/12009)
 
-- https://oshpark.com/shared_projects/cp3NoWn5
+- [https://oshpark.com/shared_projects/cp3NoWn5](https://oshpark.com/shared_projects/cp3NoWn5)
 
-- https://framagit.org/jaj/rflink-gateway
+- [https://framagit.org/jaj/rflink-gateway](https://framagit.org/jaj/rflink-gateway)
 
 
 
