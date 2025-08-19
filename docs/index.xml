@@ -10,7 +10,1200 @@
 <atom:link href="https://jaj42.github.io/blog/index.xml" rel="self" type="application/rss+xml"/>
 <description>Some things I want to share</description>
 <generator>quarto-1.7.33</generator>
-<lastBuildDate>Mon, 18 Aug 2025 22:00:00 GMT</lastBuildDate>
+<lastBuildDate>Tue, 19 Aug 2025 22:00:00 GMT</lastBuildDate>
+<item>
+  <title>Deep dive into TCI - part 2 - STANPUMP</title>
+  <dc:creator>Jona JOACHIM</dc:creator>
+  <link>https://jaj42.github.io/blog/posts/202508_tci_02_stanpump/</link>
+  <description><![CDATA[ 
+
+
+
+
+
+
+<p>The original source code for STANPUMP was written by Steven L. Shafer, one of the fathers of TCI. Steven Shafer wanted this software to be open source from the beginning which is a real gift for the community. Later, Charles Minto created the Open TCI website, which collects models and software related to PKPD and TCI. The latest version of STANPUMP is available here: <a href="https://opentci.org/code/stanpump">https://opentci.org/code/stanpump</a>.</p>
+<section id="bit-real-mode-msdos" class="level2">
+<h2 class="anchored" data-anchor-id="bit-real-mode-msdos">16-bit real mode MSDOS</h2>
+<p>STANPUMP was written for the MSDOS operating system, running on x86 systems in “real mode”. In real mode, program address physical memory directly with a maximum of 1 MB adressable memory. There is no memory protection and any memory location can be read and written by any program. The program interacts directly with the hardware through interrupts. This can for example be seen in the STANPUMP code which interacts with the keyboard or renders text on the screen.</p>
+<div class="sourceCode" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode c code-with-copy"><code class="sourceCode c"><span id="cb1-1"><span class="pp" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">#define INT09   </span><span class="bn" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0x0009</span><span class="pp" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">      </span><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/* Keyboard interrupt number           */</span></span>
+<span id="cb1-2"><span class="pp" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">#define INT1B   </span><span class="bn" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0x001B</span><span class="pp" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">      </span><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/* Ctrl-C interrupt number             */</span></span>
+<span id="cb1-3"><span class="pp" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">#define INT23   </span><span class="bn" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0x0023</span><span class="pp" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">      </span><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/* Ctrl-Break interrupt number         */</span></span>
+<span id="cb1-4"></span>
+<span id="cb1-5"><span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">void</span> set_keyboard<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">()</span></span>
+<span id="cb1-6">    <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span></span>
+<span id="cb1-7">       OldInt09 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> _dos_getvect<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(</span> INT09 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">);</span></span>
+<span id="cb1-8">       OldInt1B <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> _dos_getvect<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(</span> INT1B <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">);</span></span>
+<span id="cb1-9">       OldInt23 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> _dos_getvect<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(</span> INT23 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">);</span></span>
+<span id="cb1-10"></span>
+<span id="cb1-11">       KbdPtr <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> Int09<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb1-12">       _dos_setvect<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(</span> INT09<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span> KbdPtr <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">);</span></span>
+<span id="cb1-13"></span>
+<span id="cb1-14">       BrkPtr <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> Int1B<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb1-15">       _dos_setvect<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(</span> INT1B<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span> BrkPtr<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">);</span></span>
+<span id="cb1-16"></span>
+<span id="cb1-17">       BrkPtr <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> Int23<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb1-18">       _dos_setvect<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(</span> INT23<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span> BrkPtr <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">);</span></span>
+<span id="cb1-19"></span>
+<span id="cb1-20">       KbdCtrl  <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(</span>ADDRESS<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">)</span> KBDFLAG<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb1-21">       keyboard_reset <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb1-22">    <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span></span>
+<span id="cb1-23"></span>
+<span id="cb1-24"><span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">void</span> gotoxy<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(</span>x<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span> y<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">)</span></span>
+<span id="cb1-25"><span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">int</span> x<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span> y<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb1-26">    <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>                   <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/* gotoxy */</span></span>
+<span id="cb1-27">    REGS ir<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span> or<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb1-28">    ir<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>h<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>dh <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> y<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb1-29">    ir<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>h<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>dl <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> x<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb1-30">    ir<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>h<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>ah <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb1-31">    ir<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>h<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>bh <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb1-32">    int86<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(</span><span class="bn" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0x10</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&amp;</span>ir<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&amp;</span>or<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">);</span></span>
+<span id="cb1-33">    <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span>                   <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/* gotoxy */</span></span></code></pre></div>
+</section>
+<section id="kr-vs.-ansi-c" class="level2">
+<h2 class="anchored" data-anchor-id="kr-vs.-ansi-c">K&amp;R vs.&nbsp;ANSI C</h2>
+<p>STANPUMP is written in the obsolete K&amp;R style which was published in 1978 by Brian Kernighan and Dennis Ritchie.</p>
+<p>This is mostly visible in the function prototypes, for example:</p>
+<div class="sourceCode" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode c code-with-copy"><code class="sourceCode c"><span id="cb2-1"><span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">void</span> cube<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(</span>k10<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span>k12<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span>k21<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span>k13<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span>k31<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span>r<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">)</span></span>
+<span id="cb2-2"><span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">double</span> k10<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span> k12<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span> k21<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span> k13<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span> k31<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb2-3"><span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">double</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span>r<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb2-4">    <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>                   <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/* cube */</span></span>
+<span id="cb2-5">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/* function code */</span></span>
+<span id="cb2-6">    <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span>                   <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/* cube */</span></span></code></pre></div>
+<p>This is the modern ANSI C equivalent of this prototype:</p>
+<div class="sourceCode" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode c code-with-copy"><code class="sourceCode c"><span id="cb3-1"><span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">void</span> cube<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(</span><span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">double</span> k10<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span> <span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">double</span> k12<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span> <span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">double</span> k21<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span> <span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">double</span> k13<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span> <span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">double</span> k31<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span> <span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">double</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span>r<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">);</span></span></code></pre></div>
+</section>
+<section id="memory-allocations" class="level2">
+<h2 class="anchored" data-anchor-id="memory-allocations">Memory allocations</h2>
+<p>Memory was very constrained on the systems on which STANPUMP was meant to run. No heap allocation is performed since this was unpredictable on MSDOS systems. Instead, all variables were statically allocated and all state was shared through global variables.</p>
+<p>Global variable usage is frown upon nowadays because it makes it hard to reason about the state of the program and follow where the state was altered. It can also make the state unpredictable when multiple functions can alter it in different ways.</p>
+<p>Some very smart design choices were made in STANPUMP to soften memory and CPU needs. It can be seen that the developers understood the algorithms deeply and precalculated certain values to be able to reuse them later.</p>
+<p>One example is the introduction of “unit disposition functions” or UDFs.</p>
+<div class="sourceCode" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode c code-with-copy"><code class="sourceCode c"><span id="cb4-1">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/* calculate udf, plasma concentration, for an infusion of 1/second */</span></span>
+<span id="cb4-2">    p_udf<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">[</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">]</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb4-3">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(</span>i <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span>  i <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&lt;</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">199</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span>  i<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">++)</span></span>
+<span id="cb4-4">        <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span></span>
+<span id="cb4-5">        temp1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> temp1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> l1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> p_coef<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">[</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">]</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> l1<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">);</span></span>
+<span id="cb4-6">        temp2 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> temp2 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> l2 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> p_coef<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">[</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">]</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> l2<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">);</span></span>
+<span id="cb4-7">        temp3 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> temp3 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> l3 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> p_coef<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">[</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">]</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> l3<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">);</span></span>
+<span id="cb4-8">        p_udf<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">[</span>i<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">]</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> temp1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> temp2 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> temp3<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb4-9">        <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span></span></code></pre></div>
+<p>The UDFs serve as step response of the model and are calculated for plasma concentration and effect site concentration. They represent the response of the model for a contant infusion of 1 unit of drug per second. This needs to be calculated once and is kept in memory. This response vector can then later be scaled with the real infusion value.</p>
+</section>
+<section id="calculation-of-eigenvalues" class="level2">
+<h2 class="anchored" data-anchor-id="calculation-of-eigenvalues">Calculation of Eigenvalues</h2>
+<p>STANPUMP uses closed form solutions of the PKPD differential functions in order be improve efficiency of calculations. These closed form solutions have been derived and published by the authors among others<span class="citation" data-cites="shafer_algorithms_1992"><sup>1</sup></span>,<span class="citation" data-cites="bailey_simple_1991"><sup>2</sup></span>.</p>
+<p>In order to obtain these equations, the eigenvalues of the PKPD model need to be calculated. In the early 1990s, there were probably no mathematics libraries widely available to calculate eigenvalues, so the developers had to calculate them manually. This is done in the CUBE.C file.</p>
+<p>First, the deteriminant of the system matrix is calculated and presented in the form of a depressed cubic equation: x^3 + px + q = 0.</p>
+<p>Now, in the 1990s, there probably weren’t any off the shelf solvers for cubic equations in C available either, so the authors used the trigonometric solutino by Girolamo Cardano from the 16th century to solve this equation and derive the eigenvalues. Trigonometric functions were part of the C standard library since 1978 and extended in 1989.</p>
+<div class="sourceCode" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode c code-with-copy"><code class="sourceCode c"><span id="cb5-1"><span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">void</span> cube<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(</span>k10<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span>k12<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span>k21<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span>k13<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span>k31<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span>r<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">)</span></span>
+<span id="cb5-2"><span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">double</span> k10<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span> k12<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span> k21<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span> k13<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span> k31<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb5-3"><span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">double</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span>r<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb5-4">    <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>                   <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/* cube */</span></span>
+<span id="cb5-5">    <span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">double</span> a0<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span> a1<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span> a2<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span>  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/* factors in cubic equation */</span></span>
+<span id="cb5-6">    <span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">double</span> p<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span> q<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span>        <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/* factors in transformed equation */</span></span>
+<span id="cb5-7">    <span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">double</span> phi<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span>         <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/* used for root solving */</span></span>
+<span id="cb5-8">    <span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">double</span> r1<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span>          <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/* also used for root solving */</span></span>
+<span id="cb5-9">    <span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">double</span> toradian<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span>    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/* mathematical conversion from degrees to radians */</span></span>
+<span id="cb5-10"></span>
+<span id="cb5-11">    toradian <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> asin<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1.0</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">)</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2.0</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">180.0</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span> <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/* pi/180 */</span></span>
+<span id="cb5-12"></span>
+<span id="cb5-13">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(</span>k31 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">)</span></span>
+<span id="cb5-14">        <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span></span>
+<span id="cb5-15">        <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/* first take roots of X^3 + a2X^2 + a1X^1 + a0 = 0 */</span></span>
+<span id="cb5-16">        <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/* where the coefficients are : */</span></span>
+<span id="cb5-17">        a0 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> k10 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> k21 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> k31<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb5-18">        a1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> k10 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> k31 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> k21 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> k31 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> k21 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> k13 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> k10 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> k21 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> k31 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> k12<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb5-19">        a2 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> k10 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> k12 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> k13 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> k21 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> k31<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb5-20"></span>
+<span id="cb5-21">        <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/* now transform to x^3 + px + q = 0 */</span></span>
+<span id="cb5-22">        p <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> a1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(</span>a2 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> a2 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3.0</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">);</span></span>
+<span id="cb5-23">        q <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> a2 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> a2 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> a2 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">27.0</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">)</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(</span>a1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> a2 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3.0</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">)</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> a0<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb5-24">        r1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> sqrt<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(-(</span>p <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> p <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> p<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">)</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">27.0</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">);</span></span>
+<span id="cb5-25">        phi <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(-</span>q <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2.0</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">)</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> r1<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb5-26">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(</span>phi <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">)</span></span>
+<span id="cb5-27">            phi <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb5-28">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">else</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(</span>phi <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&lt;</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">)</span></span>
+<span id="cb5-29">            phi <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb5-30">        phi <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(</span>acos<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(</span>phi<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">)</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3.0</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">);</span></span>
+<span id="cb5-31">        r1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2.0</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> exp<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(</span>log<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(</span>r1<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">)</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3.0</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">);</span></span>
+<span id="cb5-32">        r<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">[</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">]</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-(</span>cos<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(</span>phi<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">)</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> r1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> a2 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3.0</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">);</span></span>
+<span id="cb5-33">        r<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">[</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">]</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-(</span>cos<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(</span>phi <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">120.0</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> toradian<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">)</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> r1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> a2 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3.0</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">);</span></span>
+<span id="cb5-34">        r<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">[</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">]</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-(</span>cos<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(</span>phi <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">240.0</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> toradian<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">)</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> r1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> a2 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3.0</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">);</span></span>
+<span id="cb5-35">        <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span></span>
+<span id="cb5-36">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">else</span></span>
+<span id="cb5-37">        <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span></span>
+<span id="cb5-38">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(</span>k21 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">)</span></span>
+<span id="cb5-39">            <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span></span>
+<span id="cb5-40">            <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/* first take roots of X^2 - a1X^1 + a0 = 0 */</span></span>
+<span id="cb5-41">            <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/* where the coefficients are : */</span></span>
+<span id="cb5-42">            a0 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> k10 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> k21<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb5-43">            a1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-(</span>k10 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> k12 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> k21<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">);</span></span>
+<span id="cb5-44">            r<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">[</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">]</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(-</span>a1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> sqrt<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(</span>a1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> a1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">4</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> a0<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">))</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb5-45">            r<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">[</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">]</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(-</span>a1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> sqrt<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(</span>a1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> a1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">4</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> a0<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">))</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb5-46">            r<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">[</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">]</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb5-47">            <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span></span>
+<span id="cb5-48">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">else</span></span>
+<span id="cb5-49">            <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span></span>
+<span id="cb5-50">            <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/* one compartment model */</span></span>
+<span id="cb5-51">            r<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">[</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">]</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> k10<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb5-52">            r<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">[</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">]</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb5-53">            r<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">[</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">]</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb5-54">            <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span></span>
+<span id="cb5-55">        <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span></span>
+<span id="cb5-56"></span>
+<span id="cb5-57">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/* sort - nothing fancy is needed */</span></span>
+<span id="cb5-58">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(</span>r<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">[</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">]</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;</span> r<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">[</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">])</span></span>
+<span id="cb5-59">        swap<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(&amp;</span>r<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">[</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">],</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&amp;</span>r<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">[</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">]);</span></span>
+<span id="cb5-60">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(</span>r<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">[</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">]</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;</span> r<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">[</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">])</span></span>
+<span id="cb5-61">        swap<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(&amp;</span>r<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">[</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">],</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&amp;</span>r<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">[</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">]);</span></span>
+<span id="cb5-62">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(</span>r<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">[</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">]</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;</span> r<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">[</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">])</span></span>
+<span id="cb5-63">        swap<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(&amp;</span>r<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">[</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">],</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&amp;</span>r<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">[</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">]);</span></span>
+<span id="cb5-64">    <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span>                   <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/* cube */</span></span></code></pre></div>
+</section>
+<section id="conclusion" class="level2">
+<h2 class="anchored" data-anchor-id="conclusion">Conclusion</h2>
+<p>A lot of deep knowledge of TCI algorithms and programming skills went into this software. The authors derived part of the mathematics themselves to improve performance and used coding skills which made it possible to run the algorithms in real time on very rudementary hardware.</p>
+</section>
+<section id="references" class="level2">
+<h2 class="anchored" data-anchor-id="references">References</h2>
+<div id="refs" class="references csl-bib-body">
+<div id="ref-shafer_algorithms_1992" class="csl-entry">
+<div class="csl-left-margin">1. </div><div class="csl-right-inline">Shafer SL, Gregg KM. Algorithms to rapidly achieve and maintain stable drug concentrations at the site of drug effect with a computer-controlled infusion pump. <em>Journal of Pharmacokinetics and Biopharmaceutics</em> [Internet] 1992 [cited 2025 Aug 19]; <strong>20</strong>: 147–69 Available from: <a href="http://link.springer.com/10.1007/BF01070999">http://link.springer.com/10.1007/BF01070999</a></div>
+</div>
+<div id="ref-bailey_simple_1991" class="csl-entry">
+<div class="csl-left-margin">2. </div><div class="csl-right-inline">Bailey JM, Shafer SL. <a href="https://doi.org/10.1109/10.81576">A simple analytical solution to the three-compartment pharmacokinetic model suitable for computer-controlled infusion pumps</a>. <em>IEEE transactions on bio-medical engineering</em> 1991; <strong>38</strong>: 522–5 </div>
+</div>
+</div>
+
+
+</section>
+
+ ]]></description>
+  <category>pharmacometrics</category>
+  <category>tci</category>
+  <guid>https://jaj42.github.io/blog/posts/202508_tci_02_stanpump/</guid>
+  <pubDate>Tue, 19 Aug 2025 22:00:00 GMT</pubDate>
+</item>
 <item>
   <title>Deep dive into TCI - part 1</title>
   <dc:creator>Jona JOACHIM</dc:creator>
