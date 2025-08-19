@@ -6,7 +6,6 @@ website:
   title: "blog"
   navbar:
     right:
-      - about.qmd
       - icon: github
         href: https://github.com/jaj42
       - icon: gitlab
