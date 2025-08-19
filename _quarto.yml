@@ -4,6 +4,8 @@ project:
 
 website:
   title: "blog"
+  site-url: https://jaj42.github.io/blog/
+  description: "Some things I want to share"
   navbar:
     right:
       - icon: github
@@ -12,6 +14,8 @@ website:
         href: https://framagit.org/users/jaj/projects
       - icon: mastodon
         href: https://mastodon.social/@jaj
+      - icon: rss
+        href: index.xml
 format:
   html:
     theme:

@@ -52,7 +52,7 @@ After you completed the board, it is possible to hook it up to home automation s
 
 Here is a view of the fully assembled board. Maybe at some point I will design a box for it.
 
-Update August 2025: it's been running flawlessly for 6 years. But I haven't desigend a box yet.
+Update August 2025: it's been running flawlessly for 6 years. I haven't designed a box yet.
 
 ![](IMG_20191024_215427.jpg)
 

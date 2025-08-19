@@ -1,0 +1,987 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss  xmlns:atom="http://www.w3.org/2005/Atom" 
+      xmlns:media="http://search.yahoo.com/mrss/" 
+      xmlns:content="http://purl.org/rss/1.0/modules/content/" 
+      xmlns:dc="http://purl.org/dc/elements/1.1/" 
+      version="2.0">
+<channel>
+<title>blog</title>
+<link>https://jaj42.github.io/blog/</link>
+<atom:link href="https://jaj42.github.io/blog/index.xml" rel="self" type="application/rss+xml"/>
+<description>Some things I want to share</description>
+<generator>quarto-1.7.33</generator>
+<lastBuildDate>Thu, 28 Nov 2019 23:00:00 GMT</lastBuildDate>
+<item>
+  <title>RFLink 433 MHz RF Gateway</title>
+  <dc:creator>Jona </dc:creator>
+  <link>https://jaj42.github.io/blog/posts/201911_rflink/</link>
+  <description><![CDATA[ 
+
+
+
+
+
+
+<p><img src="https://jaj42.github.io/blog/posts/201911_rflink/IMG_20191024_171635.jpg" class="img-fluid"></p>
+<p>In this blog post I would like to share my custom RFLink gateway built on top of the <a href="https://robotdyn.com/catalog/arduino/boards/matrix-led-8x8-module-32x32mm-driver-max7219-7221.html">RobotDyn Mega 2560 PRO</a> board. You can see the Mega 2560 PRO as an Arduino Mega clone using a more efficient board layout in order to achieve a smaller board size while still exposing all the relevant features of the microcontroller.</p>
+<p>I designed a daughter board using KiCAD with the instructions from the <a href="http://www.rflink.nl/blog2/wiring">RFLink website</a> in order to place the RF parts. I used the Aurel RTX MID 5v transceiver which is recommended by the RFLink team. The fact that it contains receiver and transmitter on the same board simplifies the wiring and enables you to use only one antenna. You could however use any other 433 Mhz RF TX/RX components as described on the site.</p>
+<p>Here is the full component list for this project:</p>
+<ul>
+<li>MEGA 2560 PRO Board</li>
+<li>Custom PCB</li>
+<li>100nF ceramic capacitor</li>
+<li>10k resistor</li>
+<li>Bi-directional logic level converter</li>
+<li>SMA edge connector</li>
+<li>433 Mhz SMA antenna</li>
+</ul>
+<p>The MEGA 2560 PRO board uses 3.3V logic levels internally and is not compatible with 5V logic, even though it is powered from 5V USB. It has an on-board LDO converter which provides 3.3V. This means it is not possible to directly hook up the Aurel RTX MID 5v transceiver which works on 5V. I added a <a href="https://www.sparkfun.com/products/12009">bi-directional logic level converter</a> to the design for this reason, in order to be able to get the devices to talk to each other. When looking around on the Internet, I saw that there is actually a 3.3V version of the Aurel RTX MID (called Aurel RTX MID 3v), which you could hook up directly. However, the 3.3V version appears to be even more difficult to find from resellers than the 5V version, so I went with the 5V version.</p>
+<p>In order to program the Mega board, I used an AVR programmer. I went for the <a href="https://www.microchip.com/DevelopmentTools/ProductDetails/PartNO/ATAVRISP2">AVRISP mkII</a>. I don’t think this should be necessary since the board should come preflashed with the Arduino bootloader and you should be able to flash it directly over USB. Mine did not have an Arduino bootloader but this can be due to the fact that I tinkered with it in the past.</p>
+<p>You need to download the <a href="http://www.rflink.nl/blog2/download">RFLink firmware</a> and extract the RFLink.cpp.hex file which contains the actual binary firmware. (Note that RFLink is not an open source project. The source code for the firmware is not available. They do provide the source code for an old version of the firmware though).</p>
+<p>After you extracted the firmware, you can flash it directly over USB using the following command:</p>
+<div class="sourceCode" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><span class="ex" style="color: null;
+background-color: null;
+font-style: inherit;">avrdude</span> <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">-p</span> atmega2560 <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">-c</span> stk500v2 <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">-P</span> /dev/ttyUSBx <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">-b</span> 115200 <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">-D</span> <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">-Uflash:w:RFLink.cpp.hex:i</span>   </span></code></pre></div>
+<p>or you can use the AVRISP mkII programmer using this command:</p>
+<div class="sourceCode" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><span class="ex" style="color: null;
+background-color: null;
+font-style: inherit;">avrdude</span> <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">-p</span> atmega2560 <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">-c</span> avrispmkII <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">-D</span> <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">-U</span> flash:w:RFLink.cpp.hex:i</span></code></pre></div>
+<p>If you run on Windows, you can also use the GUI tool provided in the firmware archive.</p>
+<p>My KiCAD project for the daughter board is available here : <a href="https://framagit.org/jaj/rflink-gateway">https://framagit.org/jaj/rflink-gateway</a>.</p>
+<p>You can order the PCB directly from OSH Park here: <a href="https://oshpark.com/shared_projects/cp3NoWn5">https://oshpark.com/shared_projects/cp3NoWn5</a>.</p>
+<p>Most parts and devices listed above can be found very cheap from Chinese resellers.</p>
+<p>After you completed the board, it is possible to hook it up to home automation software over USB. At my place, I use it together with <a href="https://www.home-assistant.io/integrations/rflink/">Home Assistant</a> and a Raspberry Pi in order to control smart sockets.</p>
+<p>Here is a view of the fully assembled board. Maybe at some point I will design a box for it.</p>
+<p>Update August 2025: it’s been running flawlessly for 6 years. I haven’t designed a box yet.</p>
+<p><img src="https://jaj42.github.io/blog/posts/201911_rflink/IMG_20191024_215427.jpg" class="img-fluid"></p>
+<p>Links:</p>
+<ul>
+<li><p><a href="https://robotdyn.com/catalog/arduino/boards/matrix-led-8x8-module-32x32mm-driver-max7219-7221.html">https://robotdyn.com/catalog/arduino/boards/matrix-led-8x8-module-32x32mm-driver-max7219-7221.html</a></p></li>
+<li><p><a href="http://www.rflink.nl/blog2/wiring">http://www.rflink.nl/blog2/wiring</a></p></li>
+<li><p><a href="https://www.sparkfun.com/products/12009">https://www.sparkfun.com/products/12009</a></p></li>
+<li><p><a href="https://oshpark.com/shared_projects/cp3NoWn5">https://oshpark.com/shared_projects/cp3NoWn5</a></p></li>
+<li><p><a href="https://framagit.org/jaj/rflink-gateway">https://framagit.org/jaj/rflink-gateway</a></p></li>
+</ul>
+
+
+
+ ]]></description>
+  <category>rf</category>
+  <category>arduino</category>
+  <category>pcb</category>
+  <category>kicad</category>
+  <guid>https://jaj42.github.io/blog/posts/201911_rflink/</guid>
+  <pubDate>Thu, 28 Nov 2019 23:00:00 GMT</pubDate>
+</item>
+<item>
+  <title>Using the Nokia 6510 GSM modem over IrDA</title>
+  <dc:creator>Jona JOACHIM</dc:creator>
+  <link>https://jaj42.github.io/blog/posts/201107_gprs/</link>
+  <description><![CDATA[ 
+
+
+
+
+
+
+<p>So it looks like everybody has a smartphone nowadays, however I still use my Nokia 6510 on a daily basis. Like many phones back then, it has an IrDA (Infrared Data Association) interface which permits communication with the phone and I felt like playing with it a bit. For this I used a laptop with integrated IrDA interface, the OpenBSD operating system and the ppp tool that ships with it, the birda package and the smstools package. The ircomm tool that ships with birda lets you initiate an IrDA COMM connection with the phone and lets you attach a pseudo terminal to it:</p>
+<div class="sourceCode" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><span class="ex" style="color: null;
+background-color: null;
+font-style: inherit;">ircomm</span> <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">-d</span> /dev/tty01 <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">-y</span> /dev/ptypz</span></code></pre></div>
+<p>Here, /dev/tty01 is the actual IrDA interface that ircomm talks to and /dev/ptypz is a pseudo terminal it allocates that lets you talk to the GSM modem inside the device. The modem understands AT style commands. Actually you don’t talk directy to the modem but rather to some restricted modem emulation.</p>
+<p>For more information see:</p>
+<ul>
+<li><a href="http://en.wikipedia.org/wiki/Hayes_command_set#GSM" class="uri">http://en.wikipedia.org/wiki/Hayes_command_set#GSM</a></li>
+<li><a href="http://wiki.openmoko.org/wiki/Hardware:AT_Commands" class="uri">http://wiki.openmoko.org/wiki/Hardware:AT_Commands</a></li>
+<li><a href="http://wiki.openmoko.org/wiki/Manually_using_GSM" class="uri">http://wiki.openmoko.org/wiki/Manually_using_GSM</a></li>
+<li><a href="http://wiki.openmoko.org/wiki/Manually_using_GPRS" class="uri">http://wiki.openmoko.org/wiki/Manually_using_GPRS</a></li>
+</ul>
+<p>I use the ppp(8) tool to talk to the modem but anything else will work. Here’s a first session:</p>
+<div class="sourceCode" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><span class="ex" style="color: null;
+background-color: null;
+font-style: inherit;">spaceman%</span> sudo ppp</span>
+<span id="cb2-2"><span class="ex" style="color: null;
+background-color: null;
+font-style: inherit;">Password:</span></span>
+<span id="cb2-3"><span class="ex" style="color: null;
+background-color: null;
+font-style: inherit;">Working</span> in interactive mode</span>
+<span id="cb2-4"><span class="ex" style="color: null;
+background-color: null;
+font-style: inherit;">Using</span> interface: tun0</span>
+<span id="cb2-5"><span class="ex" style="color: null;
+background-color: null;
+font-style: inherit;">Warning:</span> No default entry found in config file.</span>
+<span id="cb2-6"><span class="ex" style="color: null;
+background-color: null;
+font-style: inherit;">ppp</span> ON spaceman<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;</span> set device /dev/ttypz</span>
+<span id="cb2-7"><span class="ex" style="color: null;
+background-color: null;
+font-style: inherit;">ppp</span> ON spaceman<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;</span> term</span>
+<span id="cb2-8"><span class="ex" style="color: null;
+background-color: null;
+font-style: inherit;">deflink:</span> Entering terminal mode on /dev/ttypz</span>
+<span id="cb2-9"><span class="ex" style="color: null;
+background-color: null;
+font-style: inherit;">Type</span> <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">`</span><span class="ex" style="color: null;
+background-color: null;
+font-style: inherit;">~?</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">' for help</span></span>
+<span id="cb2-10"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">ATE1</span></span>
+<span id="cb2-11"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">OK</span></span>
+<span id="cb2-12"></span>
+<span id="cb2-13"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">RING</span></span>
+<span id="cb2-14"></span>
+<span id="cb2-15"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">RING</span></span>
+<span id="cb2-16"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">ATA</span></span>
+<span id="cb2-17"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">OK</span></span>
+<span id="cb2-18"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">ATH</span></span>
+<span id="cb2-19"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">OK</span></span>
+<span id="cb2-20"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">ATD0952880000;</span></span>
+<span id="cb2-21"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">OK</span></span>
+<span id="cb2-22"></span>
+<span id="cb2-23"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">NO CARRIER</span></span>
+<span id="cb2-24"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">AT</span></span>
+<span id="cb2-25"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">OK</span></span>
+<span id="cb2-26"></span>
+<span id="cb2-27"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">ppp ON spaceman&gt;</span></span></code></pre></div>
+<p>Some explanations: “ATE1” enables echoing, which enables you to see what you type, this is not required. The phone responds with “OK” when it correctly processes a command. I then call the phone and the modem shows that a call is incoming with the “RING” signal. You can then accept the call with “ATA” or reject it with “ATH”. I accepted the call, talked a bit and then hung up using “ATH”. Then I called my home phone from the mobile phone using the ATD command. ‘D’ here stands for dialling and the command dials the number that follows the command. I then hung up from the home phone which the modem signals with “NO CARRIER”.</p>
+<p>Here’s another session where I try to establish a GPRS connection for tethering. This unfortunately doesn’t work, I don’t really know why, probably the provider forbids it:</p>
+<div class="sourceCode" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode default code-with-copy"><code class="sourceCode default"><span id="cb3-1">ppp ON spaceman&gt; term</span>
+<span id="cb3-2">AT+CGDCONT=1,"IP","gprs-service-fr.net"</span>
+<span id="cb3-3">OK</span>
+<span id="cb3-4">ATD*99#</span>
+<span id="cb3-5">CONNECT</span>
+<span id="cb3-6">ppp ON spaceman&gt; Warning: Sending empty PAP authname!</span>
+<span id="cb3-7">Ppp ON spaceman&gt;</span>
+<span id="cb3-8">PPp ON spaceman&gt; Warning: ff01:8::: Change route failed: errno: Network is unreachable</span>
+<span id="cb3-9">Warning: ff02:8::: Change route failed: errno: Network is unreachable</span>
+<span id="cb3-10">Warning: ff02:8::: Change route failed: errno: Network is unreachable</span>
+<span id="cb3-11">ppp ON spaceman&gt;</span></code></pre></div>
+<p>So here I first set the APN which is needed for GPRS, using the CGDCONT command, the value depends on your provider. Then I dial the special number *99#. The modem tries to establish the connection, which it signals with “CONNECT”. It then starts talking PPP (Point-to-Point Protocol). The ppp(8) tool detects the fact that PPP is now spoken and takes over to establish a PPP link, which unfortunately fails here. The number of capital ’P’s on the prompt show the state of the connection:</p>
+<div class="sourceCode" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode default code-with-copy"><code class="sourceCode default"><span id="cb4-1">ppp ON awfulhak&gt;               # No link has been established</span>
+<span id="cb4-2">Ppp ON awfulhak&gt;               # We've connected &amp; finished LCP</span>
+<span id="cb4-3">PPp ON awfulhak&gt;               # We've authenticated</span>
+<span id="cb4-4">PPP ON awfulhak&gt;               # We've agreed IP numbers</span></code></pre></div>
+<p>So, as you can see here, authentication is successful but we don’t get an IP address. When it fails, the phone beeps and shows the following error: “Subscribe to GPRS first”.</p>
+<p>One final thing I wanted to play with is SMS. Writing SMSes manually using AT style commands is cumbersome, so I used the smstools package which comes with a daemon that does the dirty work of talking to the modem. I set it up to talk to the /dev/ptypz device. Once it runs you can send SMSes using the “sendsms” command line tool, for example:</p>
+<div class="sourceCode" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb5-1"><span class="ex" style="color: null;
+background-color: null;
+font-style: inherit;">spaceman%</span> sendsms 33668360000 <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'Test Message'</span></span></code></pre></div>
+<p>My phone number actually starts in “0668”. “33” is the international prefix of my country (France), so you get how you have to format the number.</p>
+<p>Here is the log of the smsd daemon for this command:</p>
+<div class="sourceCode" id="cb6" style="background: #f1f3f5;"><pre class="sourceCode default code-with-copy"><code class="sourceCode default"><span id="cb6-1">2011-02-07 17:06:58,5, smsd: Moved file /var/spool/sms/outgoing/send_qzxMhS to /var/spool/sms/checked</span>
+<span id="cb6-2">2011-02-07 17:06:58,6, GSM1: I have to send 1 short message for /var/spool/sms/checked/send_qzxMhS</span>
+<span id="cb6-3">2011-02-07 17:06:58,6, GSM1: Sending SMS from  to 33668360000</span>
+<span id="cb6-4">2011-02-07 17:06:58,6, GSM1: Checking if modem is ready</span>
+<span id="cb6-5">2011-02-07 17:06:59,7, GSM1: -&gt; AT</span>
+<span id="cb6-6">2011-02-07 17:06:59,7, GSM1: Command is sent, waiting for the answer</span>
+<span id="cb6-7">2011-02-07 17:06:59,7, GSM1: &lt;- OK</span>
+<span id="cb6-8">2011-02-07 17:06:59,6, GSM1: Pre-initializing modem</span>
+<span id="cb6-9">2011-02-07 17:06:59,7, GSM1: -&gt; ATE0+CMEE=1;+CREG=2</span>
+<span id="cb6-10">2011-02-07 17:07:00,7, GSM1: Command is sent, waiting for the answer</span>
+<span id="cb6-11">2011-02-07 17:07:00,7, GSM1: &lt;- OK</span>
+<span id="cb6-12">2011-02-07 17:07:01,7, GSM1: -&gt; AT+CSQ</span>
+<span id="cb6-13">2011-02-07 17:07:01,7, GSM1: Command is sent, waiting for the answer</span>
+<span id="cb6-14">2011-02-07 17:07:01,7, GSM1: &lt;- +CSQ: 20,99 OK</span>
+<span id="cb6-15">2011-02-07 17:07:01,6, GSM1: Signal Strength Indicator: (20,99) -73 dBm (Excellent), Bit Error Rate: not known or not detectable</span>
+<span id="cb6-16">2011-02-07 17:07:01,6, GSM1: Checking if Modem is registered to the network</span>
+<span id="cb6-17">2011-02-07 17:07:01,7, GSM1: -&gt; AT+CREG?</span>
+<span id="cb6-18">2011-02-07 17:07:02,7, GSM1: Command is sent, waiting for the answer</span>
+<span id="cb6-19">2011-02-07 17:07:02,7, GSM1: &lt;- +CREG: 2,1,"00D6","9C99" OK</span>
+<span id="cb6-20">2011-02-07 17:07:02,6, GSM1: Modem is registered to the network</span>
+<span id="cb6-21">2011-02-07 17:07:02,6, GSM1: Selecting PDU mode</span>
+<span id="cb6-22">2011-02-07 17:07:02,7, GSM1: -&gt; AT+CMGF=0</span>
+<span id="cb6-23">2011-02-07 17:07:03,7, GSM1: Command is sent, waiting for the answer</span>
+<span id="cb6-24">2011-02-07 17:07:03,7, GSM1: &lt;- OK</span>
+<span id="cb6-25">2011-02-07 17:07:03,7, GSM1: -&gt; AT+CMGS=18</span>
+<span id="cb6-26">2011-02-07 17:07:04,7, GSM1: Command is sent, waiting for the answer</span>
+<span id="cb6-27">2011-02-07 17:07:04,7, GSM1: &lt;- &gt;</span>
+<span id="cb6-28">2011-02-07 17:07:04,7, GSM1: -&gt; 0011000B913366388639F90000FF04F4F29C0E</span>
+<span id="cb6-29">2011-02-07 17:07:06,7, GSM1: Command is sent, waiting for the answer</span>
+<span id="cb6-30">2011-02-07 17:07:10,7, GSM1: &lt;- +CMGS: 214 OK</span>
+<span id="cb6-31">2011-02-07 17:07:10,5, GSM1: SMS sent, Message_id: 214, To: 33668360000, sending time 12 sec.</span>
+<span id="cb6-32">2011-02-07 17:07:10,6, GSM1: Deleted file /var/spool/sms/checked/send_qzxMhS</span></code></pre></div>
+<p>The message got delivered correctly. smsd is also able to receive incoming SMS, however I haven’t tried it and I’m not sure it works since the modem of this phone does not signal anything when it receives a message.</p>
+<p>The birda package also includes some tools to use OBEX over IrDA. This lets you send and receive vCards with contacts (what Nokia calls “Business Cards”). For example, to send a vCard with a contact named “John” and phone number 06… to your phone you can use the following command:</p>
+<div class="sourceCode" id="cb7" style="background: #f1f3f5;"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb7-1"><span class="ex" style="color: null;
+background-color: null;
+font-style: inherit;">mkobextel</span> <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">-n</span> John <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">-t</span> 0668360001 <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">|</span>  <span class="ex" style="color: null;
+background-color: null;
+font-style: inherit;">irobex</span> <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">-d</span> /dev/tty01</span></code></pre></div>
+<p>Receiving vCards sent from the phone also works.</p>
+<p>Have fun!</p>
+<p>Update: I just add this here for the nostalgia</p>
+<div class="sourceCode" id="cb8" style="background: #f1f3f5;"><pre class="sourceCode default code-with-copy"><code class="sourceCode default"><span id="cb8-1">AT+CGMI</span>
+<span id="cb8-2">Nokia Mobile Phones</span>
+<span id="cb8-3"></span>
+<span id="cb8-4">OK</span>
+<span id="cb8-5">AT+CGMM</span>
+<span id="cb8-6">Nokia 6510</span>
+<span id="cb8-7"></span>
+<span id="cb8-8">OK</span>
+<span id="cb8-9">AT+CGMR</span>
+<span id="cb8-10">V 04.12</span>
+<span id="cb8-11">28-08-02</span>
+<span id="cb8-12">NPM-9</span>
+<span id="cb8-13">(c) NMP.</span>
+<span id="cb8-14"></span>
+<span id="cb8-15">OK</span></code></pre></div>
+
+
+
+ ]]></description>
+  <category>unix</category>
+  <guid>https://jaj42.github.io/blog/posts/201107_gprs/</guid>
+  <pubDate>Sun, 06 Feb 2011 23:00:00 GMT</pubDate>
+</item>
+<item>
+  <title>Neo Freerunner GPS as OpenBSD timedelta sensor</title>
+  <dc:creator>Jona JOACHIM</dc:creator>
+  <link>https://jaj42.github.io/blog/posts/201004_gps/</link>
+  <description><![CDATA[ 
+
+
+
+
+
+
+<p>I recently discovered the <a href="https://man.openbsd.org/nmea">nmea(4)</a> serial line discipline in OpenBSD which was written by Marc Balmer in 2008. This is a driver that can be attached to a serial device and which interprets NMEA 0183 data typically produced by GPS devices. It extracts time data (not position) from the GPS stream and makes it available through the OpenBSD sensors framework. This timedelta sensor can then be used by OpenNTPD to keep your clock in sync. Now I have a Neo Freerunner smartphone which comes with a GPS device that produces NMEA data and I wanted to test it out.</p>
+<p>First of all on the phone side you have to power on the GPS device, for example like this:</p>
+<div class="sourceCode" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">echo</span> 1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;</span> /sys/class/i2c-adapter/i2c-0/0-0073/pcf50633-regltr.7/neo1973-pm-gps.0/power_on</span></code></pre></div>
+<p>Then you need to transfer the GPS data from the phone to your OpenBSD machine and emulate a serial device that provides the data.</p>
+<p>socat (net/socat) does a great job at this. On the phone side make sure GPSD is running and do something like the this:</p>
+<div class="sourceCode" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><span class="ex" style="color: null;
+background-color: null;
+font-style: inherit;">socat</span> EXEC:<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"gpspipe -r"</span> TCP-LISTEN:31415</span></code></pre></div>
+<p>alternatively you can talk to the raw device without GPSD like that:</p>
+<div class="sourceCode" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb3-1"><span class="ex" style="color: null;
+background-color: null;
+font-style: inherit;">socat</span> /dev/ttySAC1,raw,echo=0,crnl TCP-LISTEN:31415</span></code></pre></div>
+<p>Now on the computer side you need to attach this to a pseudo terminal:</p>
+<div class="sourceCode" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb4-1"><span class="ex" style="color: null;
+background-color: null;
+font-style: inherit;">socat</span> TCP:192.168.0.14:31415 /dev/ptypa,raw,echo=0,crnl</span></code></pre></div>
+<p>You should now be able to query the GPS device on your computer. Attach the nmea(4) discipline to the serial device using:</p>
+<div class="sourceCode" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb5-1"><span class="ex" style="color: null;
+background-color: null;
+font-style: inherit;">ldattach</span> nmea /dev/ttypa</span></code></pre></div>
+<p>If everything worked fine you should see an nmea sensor come up which you can query using sysctl or systat for example.</p>
+<p>Here’s my relevant output from systat:</p>
+<div class="sourceCode" id="cb6" style="background: #f1f3f5;"><pre class="sourceCode default code-with-copy"><code class="sourceCode default"><span id="cb6-1">SENSOR                                          VALUE  STATUS  DESCRIPTION</span>
+<span id="cb6-2">nmea0.percent0                                100.00%    OK    Signal</span>
+<span id="cb6-3">nmea0.timedelta0                              2.237 s    OK    GPS autonomous</span></code></pre></div>
+<p>To use this sensor with OpenNTPD you simply need to add the following to /etc/ntpd.conf:</p>
+<div class="sourceCode" id="cb7" style="background: #f1f3f5;"><pre class="sourceCode default code-with-copy"><code class="sourceCode default"><span id="cb7-1">sensor nmea0</span></code></pre></div>
+<p>ntpd is opportunistic about the timedelta sensors, meaning it will use them when they are available but will run just as smooth when they are not.</p>
+<p>Here’s some ntpd output:</p>
+<div class="sourceCode" id="cb8" style="background: #f1f3f5;"><pre class="sourceCode default code-with-copy"><code class="sourceCode default"><span id="cb8-1">sensor nmea0 added (weight 1, correction 0.000000, refstr HARD)</span>
+<span id="cb8-2">sensor nmea0: offset -2.236736</span></code></pre></div>
+<p>I advise you to read the relevant man pages to get a better understanding of the process.</p>
+
+
+
+ ]]></description>
+  <category>unix</category>
+  <guid>https://jaj42.github.io/blog/posts/201004_gps/</guid>
+  <pubDate>Sun, 25 Apr 2010 22:00:00 GMT</pubDate>
+</item>
+<item>
+  <title>xterm, zsh, spawn-new-terminal, *BSD</title>
+  <dc:creator>Jona JOACHIM</dc:creator>
+  <link>https://jaj42.github.io/blog/posts/201002_zsh/</link>
+  <description><![CDATA[ 
+
+
+
+
+
+
+<p>xterm defines a very convenient action called spawn-new-terminal(). Using that action you can duplicate your current terminal and obtain a shell in your current working directory even if you’re inside a program like vim or mutt.</p>
+<p>From the man page:</p>
+<pre><code>   spawn-new-terminal(params)
+           Spawn  a  new xterm process.  This is available on
+           systems which have a modern version of the process
+           filesystem, e.g., "/proc", which xterm can read.
+
+           Use the "cwd" process entry, e.g., /proc/12345/cwd
+           to obtain the working  directory  of  the  process
+           which is running in the current xterm.</code></pre>
+<p>You can bind this action to a key using Xresources. For example I bind the action to Alt-n.&nbsp;Here’s the relevant part from my .Xdefaults:</p>
+<div class="sourceCode" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode default code-with-copy"><code class="sourceCode default"><span id="cb2-1">xterm*VT100.translations: #override \n\</span>
+<span id="cb2-2">        Meta &lt;Key&gt;n:spawn-new-terminal()</span></code></pre></div>
+<p>The problem is that on *BSD you don’t have a procfs, at least not one that looks like the one on Linux.</p>
+<p>So to actually get this working, xterm needs another way to find out the current working directory (CWD) of the shell that runs inside of it. I found out that this is not so easy and after some tinkering I decided to go for a dirty hack. The idea is, if I can’t find out the cwd of a zsh process on my own then perhaps I can ask zsh gently to tell it.</p>
+<p>Zsh, like any other shell, lets you define functions, however certain functions have a special meaning for zsh: they define hooks. We use 2 hooks here: chpwd(), called whenever the CWD of zsh changes, and zshexit(), called when the shell quits.</p>
+<p>Here are the relevant parts from my .zshrc:</p>
+<div class="sourceCode" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb3-1"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;"> chpwd()</span></span>
+<span id="cb3-2"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">{</span></span>
+<span id="cb3-3">    <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">echo</span> <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">-n</span> <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">${PWD}</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;</span> <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">${HOME}</span>/.zsh/<span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">${PPID}</span>.pwd</span>
+<span id="cb3-4"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">}</span></span>
+<span id="cb3-5"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#call chpwd once on startup</span></span>
+<span id="cb3-6"><span class="ex" style="color: null;
+background-color: null;
+font-style: inherit;">chpwd</span></span>
+<span id="cb3-7"></span>
+<span id="cb3-8"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">function</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;"> zshexit()</span></span>
+<span id="cb3-9"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">{</span></span>
+<span id="cb3-10">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">rm</span> <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">${HOME}</span>/.zsh/<span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">${PPID}</span>.pwd</span>
+<span id="cb3-11"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">}</span></span></code></pre></div>
+<p>Now for the xterm part. The relevant function is HandleSpawnTerminal() in misc.c. Here’s my modified version:</p>
+<div class="sourceCode" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode c code-with-copy"><code class="sourceCode c"><span id="cb4-1"><span class="pp" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">#include </span><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">&lt;sys/types.h&gt;</span></span>
+<span id="cb4-2"><span class="pp" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">#include </span><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">&lt;pwd.h&gt;</span></span>
+<span id="cb4-3"><span class="pp" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">#include </span><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">&lt;unistd.h&gt;</span></span>
+<span id="cb4-4"><span class="pp" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">#include </span><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">&lt;limits.h&gt;</span></span>
+<span id="cb4-5"><span class="pp" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">#include </span><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">&lt;err.h&gt;</span></span>
+<span id="cb4-6"></span>
+<span id="cb4-7"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/* ARGSUSED */</span></span>
+<span id="cb4-8"><span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">void</span></span>
+<span id="cb4-9">HandleSpawnTerminal<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(</span>Widget w GCC_UNUSED<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span></span>
+<span id="cb4-10">            XEvent <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> event GCC_UNUSED<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span></span>
+<span id="cb4-11">            String <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> params<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span></span>
+<span id="cb4-12">            Cardinal <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span>nparams<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">)</span></span>
+<span id="cb4-13"><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span></span>
+<span id="cb4-14">    <span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">static</span> <span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">char</span> zshdir<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">[]</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">".zsh"</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb4-15">    <span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">static</span> <span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">char</span> termpath<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">[]</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"xterm"</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb4-16"></span>
+<span id="cb4-17">    pid_t pid<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span> forkpid<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb4-18">    uid_t uid<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb4-19">    <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">struct</span> passwd <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span>passwd<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb4-20"></span>
+<span id="cb4-21">    <span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">char</span> pathname<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">[</span>_POSIX_PATH_MAX<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">];</span></span>
+<span id="cb4-22">    <span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">char</span> zshcwd<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">[</span>_POSIX_PATH_MAX<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">];</span></span>
+<span id="cb4-23"></span>
+<span id="cb4-24">    <span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">char</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span>home<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb4-25">    <span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">FILE</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span>fp<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb4-26"></span>
+<span id="cb4-27">    pid <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> getpid<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">();</span></span>
+<span id="cb4-28"></span>
+<span id="cb4-29">    uid <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> geteuid<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">();</span></span>
+<span id="cb4-30">    passwd <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> getpwuid<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(</span>uid<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">);</span></span>
+<span id="cb4-31">    home <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> passwd<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-&gt;</span>pw_dir<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb4-32"></span>
+<span id="cb4-33">    snprintf<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(</span>pathname<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span> <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">sizeof</span> pathname<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%s</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">/</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%s</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">/</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%ld</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">.pwd"</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span> home<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span> zshdir<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(</span><span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">long</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">)</span>pid<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">);</span></span>
+<span id="cb4-34"></span>
+<span id="cb4-35">    fp <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> fopen<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(</span>pathname<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"r"</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">);</span></span>
+<span id="cb4-36">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(</span>fp <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> NULL<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">)</span></span>
+<span id="cb4-37">    <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span></span>
+<span id="cb4-38">        warn<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"couldn't open </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%s</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span> pathname<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">);</span></span>
+<span id="cb4-39">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb4-40">    <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span></span>
+<span id="cb4-41">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(</span>fgets<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(</span>zshcwd<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span> <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">sizeof</span> zshcwd<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span> fp<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">)</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> NULL<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">)</span></span>
+<span id="cb4-42">    <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span></span>
+<span id="cb4-43">        warn<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"couldn't read from </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%s</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span> pathname<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">);</span></span>
+<span id="cb4-44">        fclose<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(</span>fp<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">);</span></span>
+<span id="cb4-45">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb4-46">    <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span></span>
+<span id="cb4-47"></span>
+<span id="cb4-48">    fclose<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(</span>fp<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">);</span></span>
+<span id="cb4-49"></span>
+<span id="cb4-50">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/* The reaper will take care of cleaning up the child */</span></span>
+<span id="cb4-51">    forkpid <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> fork<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">();</span></span>
+<span id="cb4-52">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(</span>forkpid <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&lt;</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">)</span></span>
+<span id="cb4-53">    <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span></span>
+<span id="cb4-54">        warn<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Could not fork"</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">);</span></span>
+<span id="cb4-55">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb4-56">    <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span></span>
+<span id="cb4-57">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(</span>forkpid <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">)</span></span>
+<span id="cb4-58">    <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span></span>
+<span id="cb4-59">        <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/* We are the child */</span></span>
+<span id="cb4-60">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(</span>chdir<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(</span>zshcwd<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">)</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&lt;</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">)</span></span>
+<span id="cb4-61">            err<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"could not chdir to </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%s</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span> zshcwd<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">);</span></span>
+<span id="cb4-62"></span>
+<span id="cb4-63">        <span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">unsigned</span> myargc <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span>nparams <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb4-64">        <span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">char</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">**</span>myargv <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> TypeMallocN<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(</span><span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">char</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*,</span> myargc <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">);</span></span>
+<span id="cb4-65">        <span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">unsigned</span> n <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb4-66"></span>
+<span id="cb4-67">        myargv<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">[</span>n<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">++]</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> termpath<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb4-68"></span>
+<span id="cb4-69">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">while</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(</span>n <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&lt;</span> myargc<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">)</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span></span>
+<span id="cb4-70">            myargv<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">[</span>n<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">++]</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span>params<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">++;</span></span>
+<span id="cb4-71">        <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span></span>
+<span id="cb4-72"></span>
+<span id="cb4-73">        myargv<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">[</span>n<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">]</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb4-74">        execvp<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(</span>termpath<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span> myargv<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">);</span></span>
+<span id="cb4-75"></span>
+<span id="cb4-76">        <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/* If we get here, we've failed */</span></span>
+<span id="cb4-77">        err<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">(</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"exec of '</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%s</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'"</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span> termpath<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">);</span></span>
+<span id="cb4-78">    <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">else</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span></span>
+<span id="cb4-79">        <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/* We are the parent</span></span>
+<span id="cb4-80"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">         * we just live our life */</span></span>
+<span id="cb4-81">    <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span></span>
+<span id="cb4-82"><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span></span></code></pre></div>
+<p>Now you just have to reconfigure xterm with –enable-exec-xterm and build it.</p>
+
+
+
+ ]]></description>
+  <category>unix</category>
+  <guid>https://jaj42.github.io/blog/posts/201002_zsh/</guid>
+  <pubDate>Tue, 09 Feb 2010 23:00:00 GMT</pubDate>
+</item>
+</channel>
+</rss>

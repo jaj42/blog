@@ -307,6 +307,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </i> 
 <span class="menu-text"></span></a>
   </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="../../index.xml"> <i class="bi bi-rss" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
 </ul>
           </div> <!-- /navcollapse -->
             <div class="quarto-navbar-tools">
@@ -388,7 +393,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>Most parts and devices listed above can be found very cheap from Chinese resellers.</p>
 <p>After you completed the board, it is possible to hook it up to home automation software over USB. At my place, I use it together with <a href="https://www.home-assistant.io/integrations/rflink/">Home Assistant</a> and a Raspberry Pi in order to control smart sockets.</p>
 <p>Here is a view of the fully assembled board. Maybe at some point I will design a box for it.</p>
-<p>Update August 2025: it’s been running flawlessly for 6 years. But I haven’t desigend a box yet.</p>
+<p>Update August 2025: it’s been running flawlessly for 6 years. I haven’t designed a box yet.</p>
 <p><img src="IMG_20191024_215427.jpg" class="img-fluid"></p>
 <p>Links:</p>
 <ul>
@@ -487,7 +492,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     }
       var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
       var mailtoRegex = new RegExp(/^mailto:/);
-        var filterRegex = new RegExp('/' + window.location.host + '/');
+        var filterRegex = new RegExp("https:\/\/jaj42\.github\.io\/blog\/");
       var isInternal = (href) => {
           return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
       }
