@@ -1,0 +1,16 @@
+---
+title: Template
+author: "Jona JOACHIM"
+date: "2025-08-19"
+categories: [pharmacometrics, tci]
+# image: "c3588da9-9eed-48d1-b536-ab53e7d1ad7d.jpg"
+# bibliography: references.bib
+draft: true
+---
+
+## What
+
+## Why
+
+::: {#refs}
+:::

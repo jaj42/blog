@@ -1,0 +1,84 @@
+---
+title: Neo Freerunner GPS as OpenBSD timedelta sensor
+author: "Jona JOACHIM"
+date: "2010-04-26"
+categories: [unix]
+---
+
+I recently discovered the nmea(4) serial line discipline in OpenBSD which was
+written by Marc Balmer in 2008.
+This is a driver that can be attached to a serial device and which interprets
+NMEA 0183 data typically produced by GPS devices. It extracts time data (not
+position) from the GPS stream and makes it available through the OpenBSD sensors
+framework. This timedelta sensor can then be used by OpenNTPD to keep your clock
+in sync.
+Now I have a Neo Freerunner smartphone which comes with a GPS device that
+produces NMEA data and I wanted to test it out.
+
+First of all on the phone side you have to power on the GPS device, for example
+like this:
+
+```bash
+echo 1 > /sys/class/i2c-adapter/i2c-0/0-0073/pcf50633-regltr.7/neo1973-pm-gps.0/power_on
+```
+
+Then you need to transfer the GPS data from the phone to your OpenBSD machine
+and emulate a serial device that provides the data.
+
+socat (net/socat) does a great job at this.
+On the phone side make sure GPSD is running and do something like the
+this:
+
+```bash
+socat EXEC:"gpspipe -r" TCP-LISTEN:31415
+```
+
+alternatively you can talk to the raw device without GPSD like that:
+
+```bash
+socat /dev/ttySAC1,raw,echo=0,crnl TCP-LISTEN:31415
+```
+
+Now on the computer side you need to attach this to a pseudo terminal:
+
+```bash
+socat TCP:192.168.0.14:31415 /dev/ptypa,raw,echo=0,crnl
+```
+
+You should now be able to query the GPS device on your computer. Attach the
+nmea(4) discipline to the serial device using:
+
+```bash
+ldattach nmea /dev/ttypa
+```
+
+If everything worked fine you should see an nmea sensor come up which you can
+query using sysctl or systat for example.
+
+Here's my relevant output from systat:
+
+```default
+SENSOR                                          VALUE  STATUS  DESCRIPTION
+nmea0.percent0                                100.00%    OK    Signal
+nmea0.timedelta0                              2.237 s    OK    GPS autonomous
+```
+
+To use this sensor with OpenNTPD you simply need to add the following to
+/etc/ntpd.conf:
+
+```default
+sensor nmea0
+```
+
+ntpd is opportunistic about the timedelta sensors, meaning it will use them when
+they are available but will run just as smooth when they are not.
+
+Here's some ntpd output:
+
+```default
+sensor nmea0 added (weight 1, correction 0.000000, refstr HARD)
+sensor nmea0: offset -2.236736
+```
+
+I advise you to read the relevant man pages to get a better understanding of the
+process.

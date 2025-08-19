@@ -1,0 +1,12 @@
+{
+  "hash": "8c9bc01c6b9914b78922c37e3facdc9e",
+  "result": {
+    "engine": "jupyter",
+    "markdown": "---\ntitle: TCI implementation\nauthor: \"Jona JOACHIM\"\ndate: \"2025-08-19\"\ncategories: [pharmacometrics, tci]\nimage: \"c3588da9-9eed-48d1-b536-ab53e7d1ad7d.jpg\"\nbibliography: references.bib\n---\n\n## What\n\n## Why\nTarget controlled infusion (TCI) has pioneered in anesthesia and has seen commercial success, first with the development of the Diprifusor device and later with \"Open TCI\" devices.\nNew PKPD models are constantly developed in the field of anesthesia. There are also a lot of ressources available on how to develop PKPD models and there is open source software available to develop and fit these models @nlmixr.\n\n\n\n\n\nThese are the constants from the Gepts model for Sufentanil.\n\n::: {#24128dfe .cell execution_count=1}\n``` {.python .cell-code}\n# Linearity of Pharmacokinetics and Model Estimation of Sufentanil by Gepts et al.\n# DOI: 10.1097/00000542-199512000-00010\n\nVc = 14.3    # L\nk10 = 0.0645 # min⁻¹\nk12 = 0.1086 # min⁻¹\nk13 = 0.0229 # min⁻¹\nk21 = 0.0245 # min⁻¹\nk31 = 0.0013 # min⁻¹\nke0 = 0.112  # min⁻¹\n```\n:::\n\n\nDifferential equations for the 3-compartment model PK system\n\n$\\frac{dA_1}{dt} = A_2 k_{21} + A_3 k_{31} - A_1(k_{10} + k_{12} + k_{13}) + \\text{Infusion}$\n\n$\\frac{dA_2}{dt} = A_1 k_{12} - A_2 k_{21}$\n\n$\\frac{dA_3}{dt} = A_1 k_{13} - A_3 k_{31}$\n\n$\\frac{dC_e}{dt} = k_{e0}\\left(\\frac{A_1}{V_c} - C_e\\right)$\n\n::: {#refs}\n:::\n\n",
+    "supporting": [
+      "index_files"
+    ],
+    "filters": [],
+    "includes": {}
+  }
+}

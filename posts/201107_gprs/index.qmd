@@ -1,0 +1,207 @@
+---
+title: Using the Nokia 6510 GSM modem over IrDA
+author: "Jona JOACHIM"
+date: "2011-02-07"
+categories: [unix]
+---
+
+So it looks like everybody has a smartphone nowadays, however I still
+use my Nokia 6510 on a daily basis.
+Like many phones back then, it has an IrDA (Infrared Data Association)
+interface which permits communication with the phone and I felt like
+playing with it a bit.
+For this I used a laptop with integrated IrDA interface, the OpenBSD
+operating system and the ppp tool that ships with it, the birda
+package and the smstools package.
+The ircomm tool that ships with birda lets you initiate an IrDA COMM
+connection with the phone and lets you attach a pseudo terminal to it:
+
+```bash
+ircomm -d /dev/tty01 -y /dev/ptypz
+```
+
+Here, /dev/tty01 is the actual IrDA interface that ircomm talks to and
+/dev/ptypz is a pseudo terminal it allocates that lets you talk to the
+GSM modem inside the device. The modem understands AT style commands.
+Actually you don't talk directy to the modem but rather to some
+restricted modem emulation.
+
+For more information see:
+
+- <http://en.wikipedia.org/wiki/Hayes_command_set#GSM>
+- <http://wiki.openmoko.org/wiki/Hardware:AT_Commands>
+- <http://wiki.openmoko.org/wiki/Manually_using_GSM>
+- <http://wiki.openmoko.org/wiki/Manually_using_GPRS>
+
+I use the ppp(8) tool to talk to the modem but anything else will work.
+Here's a first session:
+
+```bash
+spaceman% sudo ppp
+Password:
+Working in interactive mode
+Using interface: tun0
+Warning: No default entry found in config file.
+ppp ON spaceman> set device /dev/ttypz
+ppp ON spaceman> term
+deflink: Entering terminal mode on /dev/ttypz
+Type `~?' for help
+ATE1
+OK
+
+RING
+
+RING
+ATA
+OK
+ATH
+OK
+ATD0952880000;
+OK
+
+NO CARRIER
+AT
+OK
+
+ppp ON spaceman>
+```
+
+Some explanations: "ATE1" enables echoing, which enables you to see what
+you type, this is not required. The phone responds with "OK" when it
+correctly processes a command.
+I then call the phone and the modem shows that a call is incoming with
+the "RING" signal. You can then accept the call with "ATA" or reject it
+with "ATH". I accepted the call, talked a bit and then hung up using
+"ATH".
+Then I called my home phone from the mobile phone using the ATD command.
+'D' here stands for dialling and the command dials the number that
+follows the command. I then hung up from the home phone which the modem
+signals with "NO CARRIER".
+
+Here's another session where I try to establish a GPRS connection for
+tethering. This unfortunately doesn't work, I don't really know why,
+probably the provider forbids it:
+
+```default
+ppp ON spaceman> term
+AT+CGDCONT=1,"IP","gprs-service-fr.net"
+OK
+ATD*99#
+CONNECT
+ppp ON spaceman> Warning: Sending empty PAP authname!
+Ppp ON spaceman>
+PPp ON spaceman> Warning: ff01:8::: Change route failed: errno: Network is unreachable
+Warning: ff02:8::: Change route failed: errno: Network is unreachable
+Warning: ff02:8::: Change route failed: errno: Network is unreachable
+ppp ON spaceman>
+```
+
+So here I first set the APN which is needed for GPRS, using the CGDCONT
+command, the value depends on your provider. Then I dial the special
+number *99#. The modem tries to establish the connection, which it
+signals with "CONNECT". It then starts talking PPP (Point-to-Point
+Protocol). The ppp(8) tool detects the fact that PPP is now spoken and
+takes over to establish a PPP link, which unfortunately fails here. The
+number of capital 'P's on the prompt show the state of the connection:
+
+```default
+ppp ON awfulhak>               # No link has been established
+Ppp ON awfulhak>               # We've connected & finished LCP
+PPp ON awfulhak>               # We've authenticated
+PPP ON awfulhak>               # We've agreed IP numbers
+```
+
+So, as you can see here, authentication is successful but we don't get
+an IP address. When it fails, the phone beeps and shows the following
+error: "Subscribe to GPRS first".
+
+One final thing I wanted to play with is SMS. Writing SMSes manually
+using AT style commands is cumbersome, so I used the smstools package
+which comes with a daemon that does the dirty work of talking to the
+modem. I set it up to talk to the /dev/ptypz device. Once it runs you
+can send SMSes using the "sendsms" command line tool, for example:
+
+```bash
+spaceman% sendsms 33668360000 'Test Message'
+```
+
+My phone number actually starts in "0668". "33" is the international
+prefix of my country (France), so you get how you have to format the
+number.
+
+Here is the log of the smsd daemon for this command:
+
+```default
+2011-02-07 17:06:58,5, smsd: Moved file /var/spool/sms/outgoing/send_qzxMhS to /var/spool/sms/checked
+2011-02-07 17:06:58,6, GSM1: I have to send 1 short message for /var/spool/sms/checked/send_qzxMhS
+2011-02-07 17:06:58,6, GSM1: Sending SMS from  to 33668360000
+2011-02-07 17:06:58,6, GSM1: Checking if modem is ready
+2011-02-07 17:06:59,7, GSM1: -> AT
+2011-02-07 17:06:59,7, GSM1: Command is sent, waiting for the answer
+2011-02-07 17:06:59,7, GSM1: <- OK
+2011-02-07 17:06:59,6, GSM1: Pre-initializing modem
+2011-02-07 17:06:59,7, GSM1: -> ATE0+CMEE=1;+CREG=2
+2011-02-07 17:07:00,7, GSM1: Command is sent, waiting for the answer
+2011-02-07 17:07:00,7, GSM1: <- OK
+2011-02-07 17:07:01,7, GSM1: -> AT+CSQ
+2011-02-07 17:07:01,7, GSM1: Command is sent, waiting for the answer
+2011-02-07 17:07:01,7, GSM1: <- +CSQ: 20,99 OK
+2011-02-07 17:07:01,6, GSM1: Signal Strength Indicator: (20,99) -73 dBm (Excellent), Bit Error Rate: not known or not detectable
+2011-02-07 17:07:01,6, GSM1: Checking if Modem is registered to the network
+2011-02-07 17:07:01,7, GSM1: -> AT+CREG?
+2011-02-07 17:07:02,7, GSM1: Command is sent, waiting for the answer
+2011-02-07 17:07:02,7, GSM1: <- +CREG: 2,1,"00D6","9C99" OK
+2011-02-07 17:07:02,6, GSM1: Modem is registered to the network
+2011-02-07 17:07:02,6, GSM1: Selecting PDU mode
+2011-02-07 17:07:02,7, GSM1: -> AT+CMGF=0
+2011-02-07 17:07:03,7, GSM1: Command is sent, waiting for the answer
+2011-02-07 17:07:03,7, GSM1: <- OK
+2011-02-07 17:07:03,7, GSM1: -> AT+CMGS=18
+2011-02-07 17:07:04,7, GSM1: Command is sent, waiting for the answer
+2011-02-07 17:07:04,7, GSM1: <- >
+2011-02-07 17:07:04,7, GSM1: -> 0011000B913366388639F90000FF04F4F29C0E
+2011-02-07 17:07:06,7, GSM1: Command is sent, waiting for the answer
+2011-02-07 17:07:10,7, GSM1: <- +CMGS: 214 OK
+2011-02-07 17:07:10,5, GSM1: SMS sent, Message_id: 214, To: 33668360000, sending time 12 sec.
+2011-02-07 17:07:10,6, GSM1: Deleted file /var/spool/sms/checked/send_qzxMhS
+```
+
+The message got delivered correctly.
+smsd is also able to receive incoming SMS, however I haven't tried it
+and I'm not sure it works since the modem of this phone does not signal
+anything when it receives a message.
+
+The birda package also includes some tools to use OBEX over IrDA. This
+lets you send and receive vCards with contacts (what Nokia calls
+"Business Cards").
+For example, to send a vCard with a contact named "John" and phone
+number 06... to your phone you can use the following command:
+
+```bash
+mkobextel -n John -t 0668360001 |  irobex -d /dev/tty01
+```
+
+Receiving vCards sent from the phone also works.
+
+Have fun!
+
+Update:
+I just add this here for the nostalgia
+
+```default
+AT+CGMI
+Nokia Mobile Phones
+
+OK
+AT+CGMM
+Nokia 6510
+
+OK
+AT+CGMR
+V 04.12
+28-08-02
+NPM-9
+(c) NMP.
+
+OK
+```

@@ -1,0 +1,46 @@
+---
+title: TCI implementation
+author: "Jona JOACHIM"
+date: "2025-08-19"
+categories: [pharmacometrics, tci]
+image: "c3588da9-9eed-48d1-b536-ab53e7d1ad7d.jpg"
+bibliography: references.bib
+---
+
+## What
+
+## Why
+Target controlled infusion (TCI) has pioneered in anesthesia and has seen commercial success, first with the development of the Diprifusor device and later with "Open TCI" devices.
+New PKPD models are constantly developed in the field of anesthesia. There are also a lot of ressources available on how to develop PKPD models and there is open source software available to develop and fit these models @nlmixr.
+
+
+
+
+
+These are the constants from the Gepts model for Sufentanil.
+```{python}
+#| eval: false
+# Linearity of Pharmacokinetics and Model Estimation of Sufentanil by Gepts et al.
+# DOI: 10.1097/00000542-199512000-00010
+
+Vc = 14.3    # L
+k10 = 0.0645 # min⁻¹
+k12 = 0.1086 # min⁻¹
+k13 = 0.0229 # min⁻¹
+k21 = 0.0245 # min⁻¹
+k31 = 0.0013 # min⁻¹
+ke0 = 0.112  # min⁻¹
+```
+
+Differential equations for the 3-compartment model PK system
+
+$\frac{dA_1}{dt} = A_2 k_{21} + A_3 k_{31} - A_1(k_{10} + k_{12} + k_{13}) + \text{Infusion}$
+
+$\frac{dA_2}{dt} = A_1 k_{12} - A_2 k_{21}$
+
+$\frac{dA_3}{dt} = A_1 k_{13} - A_3 k_{31}$
+
+$\frac{dC_e}{dt} = k_{e0}\left(\frac{A_1}{V_c} - C_e\right)$
+
+::: {#refs}
+:::

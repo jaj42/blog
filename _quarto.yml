@@ -1,0 +1,21 @@
+project:
+  type: website
+  output-dir: docs
+
+website:
+  title: "blog"
+  navbar:
+    right:
+      - about.qmd
+      - icon: github
+        href: https://github.com/jaj42
+      - icon: gitlab
+        href: https://framagit.org/users/jaj/projects
+      - icon: mastodon
+        href: https://mastodon.social/@jaj
+format:
+  html:
+    theme:
+      light: flatly
+      dark: slate
+    css: styles.css

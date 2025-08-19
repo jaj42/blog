@@ -1,0 +1,151 @@
+---
+title: xterm, zsh, spawn-new-terminal, *BSD
+author: "Jona JOACHIM"
+date: "2010-02-10"
+categories: [unix]
+---
+
+xterm defines a very convenient action called spawn-new-terminal().
+Using that action you can duplicate your current terminal and obtain a
+shell in your current working directory even if you're inside a program
+like vim or mutt.
+
+From the man page:
+
+       spawn-new-terminal(params)
+               Spawn  a  new xterm process.  This is available on
+               systems which have a modern version of the process
+               filesystem, e.g., "/proc", which xterm can read.
+
+               Use the "cwd" process entry, e.g., /proc/12345/cwd
+               to obtain the working  directory  of  the  process
+               which is running in the current xterm.
+
+You can bind this action to a key using Xresources. For example I bind
+the action to Alt-n. Here's the relevant part from my .Xdefaults:
+
+```default
+xterm*VT100.translations: #override \n\
+        Meta <Key>n:spawn-new-terminal()
+```
+
+The problem is that on *BSD you don't have a procfs, at least not one
+that looks like the one on Linux.
+
+So to actually get this working, xterm needs another way to find out the
+current working directory (CWD) of the shell that runs inside of it. I
+found out that this is not so easy and after some tinkering I decided to
+go for a dirty hack. The idea is, if I can't find out the cwd of a zsh process
+on my own then perhaps I can ask zsh gently to tell it.
+
+Zsh, like any other shell, lets you define functions, however certain
+functions have a special meaning for zsh: they define hooks.
+We use 2 hooks here: chpwd(), called whenever the CWD of zsh changes,
+and zshexit(), called when the shell quits.
+
+Here are the relevant parts from my .zshrc:
+
+```bash
+function chpwd()
+{
+    echo -n ${PWD} > ${HOME}/.zsh/${PPID}.pwd
+}
+#call chpwd once on startup
+chpwd
+
+function zshexit()
+{
+    rm ${HOME}/.zsh/${PPID}.pwd
+}
+```
+
+Now for the xterm part. The relevant function is HandleSpawnTerminal()
+in misc.c. Here's my modified version:
+
+```C
+#include <sys/types.h>
+#include <pwd.h>
+#include <unistd.h>
+#include <limits.h>
+#include <err.h>
+
+/* ARGSUSED */
+void
+HandleSpawnTerminal(Widget w GCC_UNUSED,
+		    XEvent * event GCC_UNUSED,
+		    String * params,
+		    Cardinal *nparams)
+{
+    static char zshdir[] = ".zsh";
+    static char termpath[] = "xterm";
+
+    pid_t pid, forkpid;
+    uid_t uid;
+    struct passwd *passwd;
+
+    char pathname[_POSIX_PATH_MAX];
+    char zshcwd[_POSIX_PATH_MAX];
+
+    char *home;
+    FILE *fp;
+
+    pid = getpid();
+
+    uid = geteuid();
+    passwd = getpwuid(uid);
+    home = passwd->pw_dir;
+
+    snprintf(pathname, sizeof pathname, "%s/%s/%ld.pwd", home, zshdir, (long)pid);
+
+    fp = fopen(pathname, "r");
+    if(fp == NULL)
+    {
+        warn("couldn't open %s", pathname);
+        return;
+    }
+    if(fgets(zshcwd, sizeof zshcwd, fp) == NULL)
+    {
+        warn("couldn't read from %s", pathname);
+        fclose(fp);
+        return;
+    }
+
+    fclose(fp);
+
+    /* The reaper will take care of cleaning up the child */
+    forkpid = fork();
+    if(forkpid < 0)
+    {
+        warn("Could not fork");
+        return;
+    }
+    if(forkpid == 0)
+    {
+        /* We are the child */
+        if(chdir(zshcwd) < 0)
+            err(1, "could not chdir to %s", zshcwd);
+
+        unsigned myargc = *nparams + 1;
+        char **myargv = TypeMallocN(char *, myargc + 1);
+        unsigned n = 0;
+
+        myargv[n++] = termpath;
+
+        while (n < myargc) {
+            myargv[n++] = *params++;
+        }
+
+        myargv[n] = 0;
+        execvp(termpath, myargv);
+
+        /* If we get here, we've failed */
+        err(1, "exec of '%s'", termpath);
+    } else {
+        /* We are the parent
+         * we just live our life */
+    }
+}
+```
+
+Now you just have to reconfigure xterm with --enable-exec-xterm and
+build it.
