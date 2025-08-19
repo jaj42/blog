@@ -4,7 +4,7 @@ author: "Jona JOACHIM"
 date: "2025-08-19"
 categories: [news, code, analysis]
 #image: "c3588da9-9eed-48d1-b536-ab53e7d1ad7d.jpg"
-bibliography: references.bib
+# bibliography: ../202508_tci_01_idea/references.bib
 draft: true
 ---
 

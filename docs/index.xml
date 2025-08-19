@@ -10,7 +10,53 @@
 <atom:link href="https://jaj42.github.io/blog/index.xml" rel="self" type="application/rss+xml"/>
 <description>Some things I want to share</description>
 <generator>quarto-1.7.33</generator>
-<lastBuildDate>Thu, 28 Nov 2019 23:00:00 GMT</lastBuildDate>
+<lastBuildDate>Mon, 18 Aug 2025 22:00:00 GMT</lastBuildDate>
+<item>
+  <title>Deep dive into TCI - part 1</title>
+  <dc:creator>Jona JOACHIM</dc:creator>
+  <link>https://jaj42.github.io/blog/posts/202508_tci_01_idea/</link>
+  <description><![CDATA[ 
+
+
+
+
+
+
+<section id="what" class="level2">
+<h2 class="anchored" data-anchor-id="what">What</h2>
+<p>Target controlled infusion (TCI) is a technique where the infusion of drugs is controlled in real time by algorithms to achieve quickly and safely, without overshoot, the desire concentration of drug in a patients blood and / or at the effect site of the drug. This technique, while not limited to anesthesia, has seen wide application only in the perioperative setting where anesthesia related drugs are infused to obtain a stable sedation when total intravenous anesthesia (TIVA) is used.</p>
+<p>TCI is based on pharmacometric models called PKPD models for pharmacokinetic-pharmacodynamic models. These models describe the drug distribution and metabolism through the body (pharmacokinetics) and the effect of the drug on the body (pharmacodynamics). Most of the time, the effect will be the level of sedation but this is not mandatory. From the first uses of TCI in the 1980s<span class="citation" data-cites="struys_history_2016"><sup>1</sup></span> to today, a lot of effort has gone into the development of new PKPD models. These models are now available for nearly every drug used for anesthesia. A lot of literature is available on PKPD models and model design and a lot of software is available to build and fit these models. The best known software is NONMEM but numerous others are available, even open source software such as nlmixr2<span class="citation" data-cites="nlmixr"><sup>2</sup></span>.</p>
+<p>Most PKPD models for anesthesia are compartmental models with 3 compartments. A1 is typically the amount of drug in the plasma. Additionally, Ce is the concentration in the “effect compartment” which drives the drug effect.</p>
+<p><img src="https://latex.codecogs.com/png.latex?%5Cfrac%7BdA_1%7D%7Bdt%7D%20=%20A_2%20k_%7B21%7D%20+%20A_3%20k_%7B31%7D%20-%20A_1(k_%7B10%7D%20+%20k_%7B12%7D%20+%20k_%7B13%7D)%20+%20%5Ctext%7BInfusion%7D"></p>
+<p><img src="https://latex.codecogs.com/png.latex?%5Cfrac%7BdA_2%7D%7Bdt%7D%20=%20A_1%20k_%7B12%7D%20-%20A_2%20k_%7B21%7D"></p>
+<p><img src="https://latex.codecogs.com/png.latex?%5Cfrac%7BdA_3%7D%7Bdt%7D%20=%20A_1%20k_%7B13%7D%20-%20A_3%20k_%7B31%7D"></p>
+<p><img src="https://latex.codecogs.com/png.latex?%5Cfrac%7BdC_e%7D%7Bdt%7D%20=%20k_%7Be0%7D%5Cleft(%5Cfrac%7BA_1%7D%7BV_c%7D%20-%20C_e%5Cright)"></p>
+<p><img src="https://jaj42.github.io/blog/posts/202508_tci_01_idea/Screenshot_20250819_135400.png" class="img-fluid"></p>
+<p>However, in order to use new models, these models need to be integrated in the TCI systems. Currently, there are few TCI systems available. Most are proprietary and closed source. Additionally, the algorithms used for TCI, which needs to inverse PKPD models, are less well known.</p>
+<p>Currently, the only open source TCI software I’m aware of is the <a href="https://opentci.org/code/stanpump">STANPUMP</a> system from the 1990s.</p>
+<p>In this series of blog posts, I will take a deep dive into the STANPUMP source code to try and understand the algorithms involved and see if I can implement them in a modern fashion. The aim is to understand the algorithms and have a minimal open source implementation from which to work.</p>
+</section>
+<section id="references" class="level2">
+<h2 class="anchored" data-anchor-id="references">References</h2>
+<div id="refs" class="references csl-bib-body">
+<div id="ref-struys_history_2016" class="csl-entry">
+<div class="csl-left-margin">1. </div><div class="csl-right-inline">Struys MMRF, De Smet T, Glen J(Iain)B, Vereecke HEM, Absalom AR, Schnider TW. The <span>History</span> of <span>Target</span>-<span>Controlled</span> <span>Infusion</span>. <em>Anesthesia &amp; Analgesia</em> [Internet] 2016 [cited 2025 Aug 19]; <strong>122</strong>: 56–69 Available from: <a href="https://journals.lww.com/00000539-201601000-00015">https://journals.lww.com/00000539-201601000-00015</a></div>
+</div>
+<div id="ref-nlmixr" class="csl-entry">
+<div class="csl-left-margin">2. </div><div class="csl-right-inline">Fidler M, Wilkins J, Hooijmaijers R, et al. Nonlinear mixed-effects model development and simulation using nlmixr and related r open-source packages. <em>CPT: Pharmacometrics &amp; Systems Pharmacology</em> [Internet] Hoboken: John Wiley; Sons Inc.; 2019; <strong>8</strong>: 621–33 Available from: <a href="https://doi.org/10.1002/psp4.12445">https://doi.org/10.1002/psp4.12445</a></div>
+</div>
+</div>
+
+
+</section>
+
+ ]]></description>
+  <category>pharmacometrics</category>
+  <category>tci</category>
+  <guid>https://jaj42.github.io/blog/posts/202508_tci_01_idea/</guid>
+  <pubDate>Mon, 18 Aug 2025 22:00:00 GMT</pubDate>
+  <media:content url="https://jaj42.github.io/blog/posts/202508_tci_01_idea/Screenshot_20250819_135400.png" medium="image" type="image/png" height="62" width="144"/>
+</item>
 <item>
   <title>RFLink 433 MHz RF Gateway</title>
   <dc:creator>Jona </dc:creator>
