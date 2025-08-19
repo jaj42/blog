@@ -292,11 +292,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </button>
           <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav navbar-nav-scroll ms-auto">
-  <li class="nav-item">
-    <span class="nav-link">
-<span class="menu-text">about.qmd</span>
-    </span>
-  </li>  
   <li class="nav-item compact">
     <a class="nav-link" href="https://github.com/jaj42"> <i class="bi bi-github" role="img">
 </i> 
@@ -364,7 +359,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 
 
-<p>I recently discovered the nmea(4) serial line discipline in OpenBSD which was written by Marc Balmer in 2008. This is a driver that can be attached to a serial device and which interprets NMEA 0183 data typically produced by GPS devices. It extracts time data (not position) from the GPS stream and makes it available through the OpenBSD sensors framework. This timedelta sensor can then be used by OpenNTPD to keep your clock in sync. Now I have a Neo Freerunner smartphone which comes with a GPS device that produces NMEA data and I wanted to test it out.</p>
+<p>I recently discovered the <a href="https://man.openbsd.org/nmea">nmea(4)</a> serial line discipline in OpenBSD which was written by Marc Balmer in 2008. This is a driver that can be attached to a serial device and which interprets NMEA 0183 data typically produced by GPS devices. It extracts time data (not position) from the GPS stream and makes it available through the OpenBSD sensors framework. This timedelta sensor can then be used by OpenNTPD to keep your clock in sync. Now I have a Neo Freerunner smartphone which comes with a GPS device that produces NMEA data and I wanted to test it out.</p>
 <p>First of all on the phone side you have to power on the GPS device, for example like this:</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> 1 <span class="op">&gt;</span> /sys/class/i2c-adapter/i2c-0/0-0073/pcf50633-regltr.7/neo1973-pm-gps.0/power_on</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>Then you need to transfer the GPS data from the phone to your OpenBSD machine and emulate a serial device that provides the data.</p>

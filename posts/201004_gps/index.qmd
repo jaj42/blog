@@ -5,7 +5,7 @@ date: "2010-04-26"
 categories: [unix]
 ---
 
-I recently discovered the nmea(4) serial line discipline in OpenBSD which was
+I recently discovered the [nmea(4)](https://man.openbsd.org/nmea) serial line discipline in OpenBSD which was
 written by Marc Balmer in 2008.
 This is a driver that can be attached to a serial device and which interprets
 NMEA 0183 data typically produced by GPS devices. It extracts time data (not
