@@ -1,31 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://jaj42.github.io/blog/posts/201107_gprs/index.html</loc>
-    <lastmod>2025-08-19T10:28:28.039Z</lastmod>
-  </url>
-  <url>
-    <loc>https://jaj42.github.io/blog/posts/201002_zsh/index.html</loc>
-    <lastmod>2025-08-19T10:28:28.039Z</lastmod>
-  </url>
-  <url>
-    <loc>https://jaj42.github.io/blog/posts/201911_rflink/index.html</loc>
-    <lastmod>2025-08-19T11:50:04.553Z</lastmod>
-  </url>
-  <url>
-    <loc>https://jaj42.github.io/blog/posts/202508_tci_02_stanpump/index.html</loc>
-    <lastmod>2025-08-19T14:29:33.487Z</lastmod>
+    <loc>https://jaj42.github.io/blog/posts/201004_gps/index.html</loc>
+    <lastmod>2025-08-19T11:36:32.081Z</lastmod>
   </url>
   <url>
     <loc>https://jaj42.github.io/blog/index.html</loc>
     <lastmod>2025-08-19T11:48:09.830Z</lastmod>
   </url>
   <url>
-    <loc>https://jaj42.github.io/blog/posts/202508_tci_01_idea/index.html</loc>
-    <lastmod>2025-08-19T13:09:56.581Z</lastmod>
+    <loc>https://jaj42.github.io/blog/posts/201911_rflink/index.html</loc>
+    <lastmod>2025-08-19T11:50:04.553Z</lastmod>
   </url>
   <url>
-    <loc>https://jaj42.github.io/blog/posts/201004_gps/index.html</loc>
-    <lastmod>2025-08-19T11:36:32.081Z</lastmod>
+    <loc>https://jaj42.github.io/blog/posts/201002_zsh/index.html</loc>
+    <lastmod>2025-08-19T10:28:28.039Z</lastmod>
+  </url>
+  <url>
+    <loc>https://jaj42.github.io/blog/posts/201107_gprs/index.html</loc>
+    <lastmod>2025-08-19T10:28:28.039Z</lastmod>
   </url>
 </urlset>
