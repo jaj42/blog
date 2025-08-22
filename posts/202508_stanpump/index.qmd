@@ -9,47 +9,25 @@ csl: british-journal-of-anaesthesia.csl
 ---
 
 ## Pharmacometrics, TCI and STANPUMP
-Target controlled infusion (TCI) is a technique where the infusion of drugs is controlled in real time by algorithms to achieve quickly and safely, without overshoot, the desire concentration of drug in a patients blood and / or at the effect site of the drug. This technique, while not limited to anesthesia, has seen wide application only in the perioperative setting where anesthesia related drugs are infused to obtain a stable sedation when total intravenous anesthesia (TIVA) is used.
+Target controlled infusion (TCI) is a technique where the infusion of drugs is controlled in real time by algorithms to achieve quickly and safely, without overshoot, the desired concentration of drug in a patients blood and / or at the effect site of the drug. This technique, while not limited to anesthesia, has seen wide application only in the perioperative setting where anesthesia related drugs are infused to obtain a stable sedation when total intravenous anesthesia (TIVA) is used.
 
 TCI is based on pharmacometric models called PKPD models for pharmacokinetic-pharmacodynamic models. These models describe the drug distribution and metabolism through the body (pharmacokinetics) and the effect of the drug on the body (pharmacodynamics). Most of the time, the effect will be the level of sedation but this is not mandatory. From the first uses of TCI in the 1980s @struys_history_2016 to today, a lot of effort has gone into the development of new PKPD models. These models are now available for nearly every drug used for anesthesia. A lot of literature is available on PKPD models and model design and a lot of software is available to build and fit these models. The best known software is NONMEM but numerous others are available, even open source software such as nlmixr2 @nlmixr.
 
 Most PKPD models for anesthesia are compartmental models with 3 compartments. A1 is typically the amount of drug in the plasma.
 Additionally, Ce is the concentration in the "effect compartment" which drives the drug effect.
 
-$\frac{dA_1}{dt} = A_2 k_{21} + A_3 k_{31} - A_1(k_{10} + k_{12} + k_{13}) + \text{Infusion}$
+However, in order to use new models, these models need to be integrated in the TCI systems.
 
-$\frac{dA_2}{dt} = A_1 k_{12} - A_2 k_{21}$
+Currently, there are few TCI systems available. Most are proprietary and closed source. Additionally, the algorithms used for TCI, which needs to inverse PKPD models, are less well known. The only open source TCI system I'm aware of is [STANPUMP](https://opentci.org/code/stanpump) from the 1990s.
 
-$\frac{dA_3}{dt} = A_1 k_{13} - A_3 k_{31}$
-
-$\frac{dC_e}{dt} = k_{e0}\left(\frac{A_1}{V_c} - C_e\right)$
-
-![](Screenshot_20250819_135400.png)
-
-However, in order to use new models, these models need to be integrated in the TCI systems. Currently, there are few TCI systems available. Most are proprietary and closed source. Additionally, the algorithms used for TCI, which needs to inverse PKPD models, are less well known.
-
-Currently, the only open source TCI software I'm aware of is the [STANPUMP](https://opentci.org/code/stanpump) system from the 1990s.
-
-In this series of blog posts, I will take a deep dive into the STANPUMP source code to try and understand the algorithms involved and see if I can implement them in a modern fashion. The aim is to understand the algorithms and have a minimal open source implementation from which to work.
+In this blog post, I will take a deep dive into the STANPUMP source code to try and understand the algorithms involved and see if I can implement them in a modern fashion. The aim is to understand the algorithms and have a minimal open source implementation from which to work.
 
 ## Mathematics
 
-These are the constants from the Gepts model for Sufentanil.
-```{python}
-#| eval: false
-# Linearity of Pharmacokinetics and Model Estimation of Sufentanil by Gepts et al.
-# DOI: 10.1097/00000542-199512000-00010
+PKPD models can be described by a set of ordinary differential equations (ODE) with one equation per compartment.
+In anesthesia, most drugs follow a 3-compartment model with can be mathematically described as follows:
 
-Vc = 14.3    # L
-k10 = 0.0645 # min⁻¹
-k12 = 0.1086 # min⁻¹
-k13 = 0.0229 # min⁻¹
-k21 = 0.0245 # min⁻¹
-k31 = 0.0013 # min⁻¹
-ke0 = 0.112  # min⁻¹
-```
-
-Differential equations for the 3-compartment model PK system
+![](Screenshot_20250819_135400.png)
 
 $\frac{dA_1}{dt} = A_2 k_{21} + A_3 k_{31} - A_1(k_{10} + k_{12} + k_{13}) + \text{Infusion}$
 
@@ -58,6 +36,8 @@ $\frac{dA_2}{dt} = A_1 k_{12} - A_2 k_{21}$
 $\frac{dA_3}{dt} = A_1 k_{13} - A_3 k_{31}$
 
 $\frac{dC_e}{dt} = k_{e0}\left(\frac{A_1}{V_c} - C_e\right)$
+
+$A_n$ is the amount of drug in compartment $n$, $k_ij$ is the rate constant which describes the speed with which the drug moves from compartement $i$ to compartment $j$. This is not Fick's laws of diffusion because diffusion is driven by concentration, not by drug amount. It took me some time to understand that we are talking about the drug amount, not the concentration. This was difficult to understand especially since there is an exception for the effect site compartment $Ce$ where the rate constant $k_e0$ drives directly concentration. Once, the effect site compartment was treated as a regular compartment (with $k_14$ and $k_41$ rate constants). However, nowadays it is treated as a special compartment with zero volume and a single rate constant $k_e0$ (= $k_41$) and $k_14$ is zero. Since the volume is zero, no drug actually moves to the compartment and it is driven by concentration.
 
 The system matrix A for the PK system is
 
