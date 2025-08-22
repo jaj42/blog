@@ -1,0 +1,391 @@
+---
+title: Deep dive into STANPUMP
+author: "Jona JOACHIM"
+date: "2025-08-19"
+categories: [pharmacometrics, tci]
+image: "Screenshot_20250819_135400.png"
+bibliography: references.bib
+csl: british-journal-of-anaesthesia.csl
+---
+
+## What
+Target controlled infusion (TCI) is a technique where the infusion of drugs is controlled in real time by algorithms to achieve quickly and safely, without overshoot, the desire concentration of drug in a patients blood and / or at the effect site of the drug. This technique, while not limited to anesthesia, has seen wide application only in the perioperative setting where anesthesia related drugs are infused to obtain a stable sedation when total intravenous anesthesia (TIVA) is used.
+
+TCI is based on pharmacometric models called PKPD models for pharmacokinetic-pharmacodynamic models. These models describe the drug distribution and metabolism through the body (pharmacokinetics) and the effect of the drug on the body (pharmacodynamics). Most of the time, the effect will be the level of sedation but this is not mandatory. From the first uses of TCI in the 1980s @struys_history_2016 to today, a lot of effort has gone into the development of new PKPD models. These models are now available for nearly every drug used for anesthesia. A lot of literature is available on PKPD models and model design and a lot of software is available to build and fit these models. The best known software is NONMEM but numerous others are available, even open source software such as nlmixr2 @nlmixr.
+
+Most PKPD models for anesthesia are compartmental models with 3 compartments. A1 is typically the amount of drug in the plasma.
+Additionally, Ce is the concentration in the "effect compartment" which drives the drug effect.
+
+$\frac{dA_1}{dt} = A_2 k_{21} + A_3 k_{31} - A_1(k_{10} + k_{12} + k_{13}) + \text{Infusion}$
+
+$\frac{dA_2}{dt} = A_1 k_{12} - A_2 k_{21}$
+
+$\frac{dA_3}{dt} = A_1 k_{13} - A_3 k_{31}$
+
+$\frac{dC_e}{dt} = k_{e0}\left(\frac{A_1}{V_c} - C_e\right)$
+
+![](Screenshot_20250819_135400.png)
+
+However, in order to use new models, these models need to be integrated in the TCI systems. Currently, there are few TCI systems available. Most are proprietary and closed source. Additionally, the algorithms used for TCI, which needs to inverse PKPD models, are less well known.
+
+Currently, the only open source TCI software I'm aware of is the [STANPUMP](https://opentci.org/code/stanpump) system from the 1990s.
+
+In this series of blog posts, I will take a deep dive into the STANPUMP source code to try and understand the algorithms involved and see if I can implement them in a modern fashion. The aim is to understand the algorithms and have a minimal open source implementation from which to work.
+
+# Source code
+The original source code for STANPUMP was written by Steven L. Shafer, one of the fathers of TCI. Steven Shafer wanted this software to be open source from the beginning which is a real gift for the community. Later, Charles Minto created the Open TCI website, which collects models and software related to PKPD and TCI. The latest version of STANPUMP is available here: [https://opentci.org/code/stanpump](https://opentci.org/code/stanpump).
+
+## 16-bit real mode MSDOS
+STANPUMP was written for the MSDOS operating system, running on x86 systems in "real mode". In real mode, program address physical memory directly with a maximum of 1 MB adressable memory. There is no memory protection and any memory location can be read and written by any program. The program interacts directly with the hardware through interrupts. This can for example be seen in the STANPUMP code which interacts with the keyboard or renders text on the screen.
+
+```C
+#define INT09	0x0009	    /* Keyboard interrupt number	       */
+#define INT1B	0x001B	    /* Ctrl-C interrupt number		       */
+#define INT23	0x0023	    /* Ctrl-Break interrupt number	       */
+
+void set_keyboard()
+	{
+       OldInt09 = _dos_getvect( INT09 );
+       OldInt1B = _dos_getvect( INT1B );
+       OldInt23 = _dos_getvect( INT23 );
+
+       KbdPtr = Int09;
+       _dos_setvect( INT09, KbdPtr );
+
+       BrkPtr = Int1B;
+       _dos_setvect( INT1B, BrkPtr);
+
+       BrkPtr = Int23;
+       _dos_setvect( INT23, BrkPtr );
+
+       KbdCtrl	= (ADDRESS) KBDFLAG;
+       keyboard_reset = 1;
+	}
+
+void gotoxy(x, y)
+int x, y;
+	{					/* gotoxy */
+	REGS ir, or;
+	ir.h.dh = y;
+	ir.h.dl = x;
+	ir.h.ah = 2;
+	ir.h.bh = 0;
+	int86(0x10, &ir, &or);
+	}					/* gotoxy */
+```
+
+## K&R vs. ANSI C
+STANPUMP is written in the now obsolete K&R style which was published in 1978 by Brian Kernighan and Dennis Ritchie.
+
+This is mostly visible in the function prototypes, for example:
+
+```C
+void cube(k10,k12,k21,k13,k31,r)
+double k10, k12, k21, k13, k31;
+double *r;
+	{					/* cube */
+    /* function code */
+	}					/* cube */
+```
+
+This is the modern ANSI C equivalent of this prototype:
+
+```C
+void cube(double k10, double k12, double k21, double k13, double k31, double *r);
+```
+
+## Memory allocations
+Memory was very constrained on the systems on which STANPUMP was meant to run. No heap allocation is performed since this was unpredictable on MSDOS systems. Instead, all variables were statically allocated and all state was shared through global variables.
+
+Global variable usage is frown upon nowadays because it makes it hard to reason about the state of the program and follow where the state was altered. It can also make the state unpredictable when multiple functions can alter it in different ways.
+
+Some very smart design choices were made in STANPUMP to soften memory and CPU needs. It can be seen that the developers understood the algorithms deeply and precalculated certain values to be able to reuse them later.
+
+One example is the introduction of "unit disposition functions" or UDFs.
+
+```C
+    /* calculate udf, plasma concentration, for an infusion of 1/second */
+	p_udf[0] = 0;
+	for (i = 1;  i < 199;  i++)
+		{
+		temp1 = temp1 * l1 + p_coef[1] * (1 - l1);
+		temp2 = temp2 * l2 + p_coef[2] * (1 - l2);
+		temp3 = temp3 * l3 + p_coef[3] * (1 - l3);
+		p_udf[i] = temp1 + temp2 + temp3;
+		}
+```
+
+The UDFs serve as step response of the model and are calculated for plasma concentration and effect site concentration. They represent the response of the model for a contant infusion of 1 unit of drug per second. This needs to be calculated once and is kept in memory. This response vector can then later be scaled with the real infusion value.
+
+## Calculation of Eigenvalues
+STANPUMP uses closed form solutions of the PKPD differential functions in order be improve efficiency of calculations. These closed form solutions have been derived and published by the authors among others @shafer_algorithms_1992,@bailey_simple_1991.
+
+In order to obtain these equations, the eigenvalues of the PKPD model need to be calculated. In the early 1990s, there were probably no mathematics libraries widely available to calculate eigenvalues, so the developers had to calculate them manually. This is done in the CUBE.C file.
+
+First, the deteriminant of the system matrix is calculated and presented in the form of a depressed cubic equation: x^3 + px + q = 0.
+
+Now, in the 1990s, there probably weren't any off the shelf solvers for cubic equations in C available either, so the authors used the trigonometric solutino by Girolamo Cardano from the 16th century to solve this equation and derive the eigenvalues. Trigonometric functions were part of the C standard library since 1978 and extended in 1989.
+
+```C
+void cube(k10,k12,k21,k13,k31,r)
+double k10, k12, k21, k13, k31;
+double *r;
+	{					/* cube */
+	double a0, a1, a2;	/* factors in cubic equation */
+	double p, q;		/* factors in transformed equation */
+	double phi;			/* used for root solving */
+	double r1;			/* also used for root solving */
+	double toradian;	/* mathematical conversion from degrees to radians */
+
+	toradian = asin(1.0) * 2.0 / 180.0;	/* pi/180 */
+
+	if (k31 > 0)
+		{
+	    /* first take roots of X^3 + a2X^2 + a1X^1 + a0 = 0 */
+    	/* where the coefficients are : */
+		a0 = k10 * k21 * k31;
+		a1 = k10 * k31 + k21 * k31 + k21 * k13 + k10 * k21 + k31 * k12;
+		a2 = k10 + k12 + k13 + k21 + k31;
+
+	    /* now transform to x^3 + px + q = 0 */
+		p = a1 - (a2 * a2 / 3.0);
+		q = (2 * a2 * a2 * a2 / 27.0) - (a1 * a2 / 3.0) + a0;
+		r1 = sqrt(-(p * p * p) / 27.0);
+		phi = (-q / 2.0) / r1;
+		if (phi > 1)
+			phi = 1;
+		else if (phi < -1)
+			phi = -1;
+		phi = (acos(phi) / 3.0);
+		r1 = 2.0 * exp(log(r1) / 3.0);
+		r[1] = -(cos(phi) * r1 - a2 / 3.0);
+		r[2] = -(cos(phi + 120.0 * toradian) * r1 - a2 / 3.0);
+		r[3] = -(cos(phi + 240.0 * toradian) * r1 - a2 / 3.0);
+		}
+	else
+		{
+		if (k21 > 0)
+			{
+		    /* first take roots of X^2 - a1X^1 + a0 = 0 */
+    		/* where the coefficients are : */
+			a0 = k10 * k21;
+			a1 = -(k10 + k12 + k21);
+			r[1] = (-a1 + sqrt(a1 * a1 - 4 * a0)) / 2;
+			r[2] = (-a1 - sqrt(a1 * a1 - 4 * a0)) / 2;
+			r[3] = 0;
+			}
+		else
+			{
+			/* one compartment model */
+			r[1] = k10;
+			r[2] = 0;
+			r[3] = 0;
+			}
+		}
+
+    /* sort - nothing fancy is needed */
+	if (r[2] > r[1])
+		swap(&r[2], &r[1]);
+	if (r[3] > r[1])
+		swap(&r[3], &r[1]);
+	if (r[3] > r[2])
+		swap(&r[3], &r[2]);
+	}					/* cube */
+```
+
+### Conclusion
+A lot of deep knowledge of TCI algorithms and programming skills went into this software. The authors derived part of the mathematics themselves to improve performance and used coding skills which made it possible to run the algorithms in real time on very rudementary hardware.
+
+## Mathematics
+
+These are the constants from the Gepts model for Sufentanil.
+```{python}
+#eval=False
+# Linearity of Pharmacokinetics and Model Estimation of Sufentanil by Gepts et al.
+# DOI: 10.1097/00000542-199512000-00010
+
+Vc = 14.3    # L
+k10 = 0.0645 # min⁻¹
+k12 = 0.1086 # min⁻¹
+k13 = 0.0229 # min⁻¹
+k21 = 0.0245 # min⁻¹
+k31 = 0.0013 # min⁻¹
+ke0 = 0.112  # min⁻¹
+```
+
+Differential equations for the 3-compartment model PK system
+
+$\frac{dA_1}{dt} = A_2 k_{21} + A_3 k_{31} - A_1(k_{10} + k_{12} + k_{13}) + \text{Infusion}$
+
+$\frac{dA_2}{dt} = A_1 k_{12} - A_2 k_{21}$
+
+$\frac{dA_3}{dt} = A_1 k_{13} - A_3 k_{31}$
+
+$\frac{dC_e}{dt} = k_{e0}\left(\frac{A_1}{V_c} - C_e\right)$
+
+The system matrix A for the PK system is
+
+$\mathbf{A} = \begin{pmatrix}
+-(k_{10} + k_{12} + k_{13}) & k_{21} & k_{31} \\
+k_{12} & -k_{21} & 0 \\
+k_{13} & 0 & -k_{31}
+\end{pmatrix}$
+
+We want to solve the system to obtain an equation of this form:
+
+$$
+C(t) = A_1 e^{-\lambda_1 t} + A_2 e^{-\lambda_2 t} + A_3 e^{-\lambda_3 t}
+$$ {#eq-exponential}
+
+
+First, we need to calculate the $\lambda$ values, which are the eigenvalues for the system.
+It is possible to obtain symbolic eigenvalues, using sympy for example. However, the expressions are to unwieldy to display and there is probably no benefit to calculating them numerically.
+
+
+Numpy does this or us:
+
+```{python}
+#eval=False
+A = [
+    [-(k10 + k12 + k13), k21, k31],
+    [k12, -k21, 0],
+    [k13, 0, -k31],
+]
+lambdas = -np.sort(np.linalg.eigvals(A))
+lambdas = np.append(lambdas, ke0)
+
+print(lambdas)
+```
+
+In 1990 for STANPUMP, the developers did not have powerful eigenvalues calculators. They needed to derive the eigenvalues manually.
+
+To find the eigenvalues $\lambda$, it is required to solve: det($\lambda$I - A) = 0, I being the identity matrix.
+
+$\lambda I - A = \begin{pmatrix}
+\lambda + (k_{10} + k_{12} + k_{13}) & -k_{21} & -k_{31} \\
+-k_{12} & \lambda + k_{21} & 0 \\
+-k_{13} & 0 & \lambda + k_{31}
+\end{pmatrix}$
+
+which can be simplified to:
+
+$\lambda³ + \lambda²(k10+k12+k13+k21+k31) + \lambda(k10×k31 + k21×k31 + k21×k13 + k10×k21 + k31×k12) + k10×k21×k31$
+
+The coefficient $a_n$ for $\lambda_n$ are:
+
+```
+a0 = k10 * k21 * k31
+a1 = k10 * k31 + k21 * k31 + k21 * k13 + k10 * k21 + k31 * k12
+a2 = k10 + k12 + k13 + k21 + k31
+```
+
+Next we need to calculate the roots for these polynomials.
+This involves solving a cubic polynomial.
+In 1990, there probably weren't any open source off the shelf polynomial solvers available.
+However the C standard mathematics library already had trigonometric functions.
+They used Cardano's method with involving trigonometrics.
+
+```C
+a0 = k10 * k21 * k31;
+a1 = k10 * k31 + k21 * k31 + k21 * k13 + k10 * k21 + k31 * k12;
+a2 = k10 + k12 + k13 + k21 + k31;
+
+/* now transform to x^3 + px + q = 0 (depressed cubic) */
+p = a1 - (a2 * a2 / 3.0);
+q = (2 * a2 * a2 * a2 / 27.0) - (a1 * a2 / 3.0) + a0;
+
+r1 = sqrt(-(p * p * p) / 27.0);
+phi = (-q / 2.0) / r1;
+/* Clamp phi to valid range for acos */
+if (phi > 1)
+    phi = 1;
+else if (phi < -1)
+    phi = -1;
+phi = (acos(phi) / 3.0);
+r1 = 2.0 * exp(log(r1) / 3.0);
+
+/* Calculate the three roots */
+r[1] = -(cos(phi) * r1 - a2 / 3.0);
+r[2] = -(cos(phi + 120.0 * toradian) * r1 - a2 / 3.0);
+r[3] = -(cos(phi + 240.0 * toradian) * r1 - a2 / 3.0);
+```
+
+To take into account the infusion in @eq-exponential
+
+$-I \frac{1-e^{-10s}}{s} - A_1(0) = -(k_1 + s)\hat{A}_1(s) + k_{21}\hat{A}_2(s) + k_{31}\hat{A}_3(s)$
+
+$-A_i(0) = k_{1i}\hat{A}_1(s) - (k_{i1} + s)\hat{A}_i(s)$
+
+![](Figure_1.png)
+
+# Pharmacokinetic Coefficient Calculations
+
+## Three Compartment Model (when $k_{31} > 0$)
+
+### Plasma Coefficients
+
+$p_{\text{coef0}} = \frac{(k_{21} - \lambda_0)(k_{31} - \lambda_0)}{(\lambda_0 - \lambda_1)(\lambda_0 - \lambda_2) \cdot V_c \cdot \lambda_0}$
+
+$p_{\text{coef1}} = \frac{(k_{21} - \lambda_1)(k_{31} - \lambda_1)}{(\lambda_1 - \lambda_0)(\lambda_1 - \lambda_2) \cdot V_c \cdot \lambda_1}$
+
+$p_{\text{coef2}} = \frac{(k_{21} - \lambda_2)(k_{31} - \lambda_2)}{(\lambda_2 - \lambda_1)(\lambda_2 - \lambda_0) \cdot V_c \cdot \lambda_2}$
+
+### Effect Site Coefficients
+
+$e_{\text{coef0}} = \frac{p_{\text{coef0}} \cdot k_{e0}}{k_{e0} - \lambda_0}$
+
+$e_{\text{coef1}} = \frac{p_{\text{coef1}} \cdot k_{e0}}{k_{e0} - \lambda_1}$
+
+$e_{\text{coef2}} = \frac{p_{\text{coef2}} \cdot k_{e0}}{k_{e0} - \lambda_2}$
+
+$e_{\text{coef3}} = \frac{(k_{e0} - k_{21})(k_{e0} - k_{31})}{(\lambda_0 - k_{e0})(\lambda_1 - k_{e0})(\lambda_2 - k_{e0}) \cdot V_c}$
+
+---
+
+## Two Compartment Model (when $k_{21} > 0$ and $k_{31} = 0$)
+
+### Plasma Coefficients
+
+$p_{\text{coef0}} = \frac{k_{21} - \lambda_0}{(\lambda_1 - \lambda_0) \cdot V_c \cdot \lambda_0}$
+
+$p_{\text{coef1}} = \frac{k_{21} - \lambda_1}{(\lambda_0 - \lambda_1) \cdot V_c \cdot \lambda_1}$
+
+$p_{\text{coef2}} = 0$
+
+### Effect Site Coefficients
+
+$e_{\text{coef0}} = \frac{p_{\text{coef0}} \cdot k_{e0}}{k_{e0} - \lambda_0}$
+
+$e_{\text{coef1}} = \frac{p_{\text{coef1}} \cdot k_{e0}}{k_{e0} - \lambda_1}$
+
+$e_{\text{coef3}} = \frac{k_{21} - k_{e0}}{(\lambda_0 - k_{e0})(\lambda_1 - k_{e0}) \cdot V_c}$
+
+---
+
+## One Compartment Model (when $k_{21} = 0$ and $k_{31} = 0$)
+
+### Plasma Coefficients
+
+$p_{\text{coef0}} = \frac{1}{\lambda_0 \cdot V_c}$
+
+### Effect Site Coefficients
+
+$e_{\text{coef0}} = \frac{p_{\text{coef0}} \cdot k_{e0}}{k_{e0} - \lambda_0}$
+
+$e_{\text{coef3}} = \frac{1}{(\lambda_0 - k_{e0}) \cdot V_c}$
+
+---
+
+## Parameter Definitions
+
+- $k_{21}$: Rate constant for drug transfer from compartment 2 to compartment 1
+- $k_{31}$: Rate constant for drug transfer from compartment 3 to compartment 1
+- $k_{e0}$: Effect site rate constant
+- $V_c$: Central compartment volume of distribution
+- $\lambda_i$: Eigenvalues (disposition rate constants) where $i \in \{0, 1, 2\}$
+- $p_{\text{coef}i}$: Plasma concentration coefficients where $i \in \{0, 1, 2\}$
+- $e_{\text{coef}i}$: Effect site concentration coefficients where $i \in \{0, 1, 2, 3\}$
+
+## References
+::: {#refs}
+:::
