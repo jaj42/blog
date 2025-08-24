@@ -300,7 +300,8 @@ double *r;
 
 ### Core algorithm
 
-To study the algorithm, I extracted the core functions, converted them to ANSI C, and created a minimal C program to run the algorithm. The source code for this project is available at: <https://framagit.org/jaj/ministan/-/tree/main/c>
+To study the algorithm, I extracted the core functions, converted them to ANSI C, and created a minimal C program to run the algorithm. The source code for this project is available at: <https://framagit.org/jaj/ministan/-/tree/main/c>.
+
 I considered it essential to run the original STANPUMP code as a reference implementation. When algorithms are re-implemented, small errors can easily creep in and may be difficult to detect. Using the original STANPUMP as a control allows us to verify that our code produces correct output.
 In my adaptation, I moved all global variables into a struct called Config to serve as a centralized state container.
 
@@ -328,7 +329,7 @@ double model(Config *cfg, double temp1, double temp2, double temp3,
 
 The cube() function was already discussed above. It calculates eigenvalues of the PK system which are widely used later in the code.
 
-The calculate_udfs() function calculates the "unit disposition functions" (UDF). A 10 second infusion is simulated at constant (unit) rate. Then the model is run until the model is run without infusion to see when the concentration peaks (peak_time). The peak_time (also called time to peak effect TTPE) is a caracteristic of the model. It is used later in the model() function. The calculate_udfs() function also calculates the $c^p$ and $c^e$ coefficients.
+The calculate_udfs() function calculates the "unit disposition functions" (UDF). A ten second infusion is simulated at constant (unit) rate. Then the model is run until the model is run without infusion to see when the concentration peaks (peak_time). The peak_time (also called time to peak effect TTPE) is a caracteristic of the model. It is used later in the model() function. The calculate_udfs() function also calculates the $c^p$ and $c^e$ coefficients.
 
 The virtual_model() function runs the model without infusion rate for a specified time. This is useful to estimate where the concentrations are heading and to evaluate how rate needs to be adjusted.
 
@@ -360,7 +361,7 @@ The current version of the code can be found here: <https://framagit.org/jaj/min
 
 Here is an example code of a simulation of the Gepts Sufentanil model @gepts_linearity_1995:
 
-https://framagit.org/jaj/ministan/-/blob/main/python/sim_gepts.py
+<https://framagit.org/jaj/ministan/-/blob/main/python/sim_gepts.py>
 
 The code calculates infusion rates for three different effect site targets and determines the resulting plasma and effect site concentrations for each rate. To validate these results, the code also solves the differential equations directly, providing an independent calculation method alongside the closed-form solutions.
 
