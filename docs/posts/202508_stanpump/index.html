@@ -1,0 +1,1163 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.7.31">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Jona JOACHIM">
+<meta name="dcterms.date" content="2025-08-19">
+
+<title>Deep dive into STANPUMP – blog</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
+
+
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-e1a5c8363afafaef2c763b6775fbf3ca.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-dark-8ef56b68f8fa1e9d2ba328e99e439f80.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-e1a5c8363afafaef2c763b6775fbf3ca.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap-89548fa512ddf931f9fd5804e6894e2c.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-dark-e8467693cade115a0f5f92b0be3b50fa.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="../../site_libs/bootstrap/bootstrap-89548fa512ddf931f9fd5804e6894e2c.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+<link rel="stylesheet" href="../../styles.css">
+</head>
+
+<body class="nav-fixed fullcontent quarto-light"><script id="quarto-html-before-body" type="application/javascript">
+    const toggleBodyColorMode = (bsSheetEl) => {
+      const mode = bsSheetEl.getAttribute("data-mode");
+      const bodyEl = window.document.querySelector("body");
+      if (mode === "dark") {
+        bodyEl.classList.add("quarto-dark");
+        bodyEl.classList.remove("quarto-light");
+      } else {
+        bodyEl.classList.add("quarto-light");
+        bodyEl.classList.remove("quarto-dark");
+      }
+    }
+    const toggleBodyColorPrimary = () => {
+      const bsSheetEl = window.document.querySelector("link#quarto-bootstrap:not([rel=disabled-stylesheet])");
+      if (bsSheetEl) {
+        toggleBodyColorMode(bsSheetEl);
+      }
+    }
+    const setColorSchemeToggle = (alternate) => {
+      const toggles = window.document.querySelectorAll('.quarto-color-scheme-toggle');
+      for (let i=0; i < toggles.length; i++) {
+        const toggle = toggles[i];
+        if (toggle) {
+          if (alternate) {
+            toggle.classList.add("alternate");
+          } else {
+            toggle.classList.remove("alternate");
+          }
+        }
+      }
+    };
+    const toggleColorMode = (alternate) => {
+      // Switch the stylesheets
+      const primaryStylesheets = window.document.querySelectorAll('link.quarto-color-scheme:not(.quarto-color-alternate)');
+      const alternateStylesheets = window.document.querySelectorAll('link.quarto-color-scheme.quarto-color-alternate');
+      manageTransitions('#quarto-margin-sidebar .nav-link', false);
+      if (alternate) {
+        // note: dark is layered on light, we don't disable primary!
+        enableStylesheet(alternateStylesheets);
+        for (const sheetNode of alternateStylesheets) {
+          if (sheetNode.id === "quarto-bootstrap") {
+            toggleBodyColorMode(sheetNode);
+          }
+        }
+      } else {
+        disableStylesheet(alternateStylesheets);
+        enableStylesheet(primaryStylesheets)
+        toggleBodyColorPrimary();
+      }
+      manageTransitions('#quarto-margin-sidebar .nav-link', true);
+      // Switch the toggles
+      setColorSchemeToggle(alternate)
+      // Hack to workaround the fact that safari doesn't
+      // properly recolor the scrollbar when toggling (#1455)
+      if (navigator.userAgent.indexOf('Safari') > 0 && navigator.userAgent.indexOf('Chrome') == -1) {
+        manageTransitions("body", false);
+        window.scrollTo(0, 1);
+        setTimeout(() => {
+          window.scrollTo(0, 0);
+          manageTransitions("body", true);
+        }, 40);
+      }
+    }
+    const disableStylesheet = (stylesheets) => {
+      for (let i=0; i < stylesheets.length; i++) {
+        const stylesheet = stylesheets[i];
+        stylesheet.rel = 'disabled-stylesheet';
+      }
+    }
+    const enableStylesheet = (stylesheets) => {
+      for (let i=0; i < stylesheets.length; i++) {
+        const stylesheet = stylesheets[i];
+        if(stylesheet.rel !== 'stylesheet') { // for Chrome, which will still FOUC without this check
+          stylesheet.rel = 'stylesheet';
+        }
+      }
+    }
+    const manageTransitions = (selector, allowTransitions) => {
+      const els = window.document.querySelectorAll(selector);
+      for (let i=0; i < els.length; i++) {
+        const el = els[i];
+        if (allowTransitions) {
+          el.classList.remove('notransition');
+        } else {
+          el.classList.add('notransition');
+        }
+      }
+    }
+    const isFileUrl = () => {
+      return window.location.protocol === 'file:';
+    }
+    const hasAlternateSentinel = () => {
+      let styleSentinel = getColorSchemeSentinel();
+      if (styleSentinel !== null) {
+        return styleSentinel === "alternate";
+      } else {
+        return false;
+      }
+    }
+    const setStyleSentinel = (alternate) => {
+      const value = alternate ? "alternate" : "default";
+      if (!isFileUrl()) {
+        window.localStorage.setItem("quarto-color-scheme", value);
+      } else {
+        localAlternateSentinel = value;
+      }
+    }
+    const getColorSchemeSentinel = () => {
+      if (!isFileUrl()) {
+        const storageValue = window.localStorage.getItem("quarto-color-scheme");
+        return storageValue != null ? storageValue : localAlternateSentinel;
+      } else {
+        return localAlternateSentinel;
+      }
+    }
+    const toggleGiscusIfUsed = (isAlternate, darkModeDefault) => {
+      const baseTheme = document.querySelector('#giscus-base-theme')?.value ?? 'light';
+      const alternateTheme = document.querySelector('#giscus-alt-theme')?.value ?? 'dark';
+      let newTheme = '';
+      if(authorPrefersDark) {
+        newTheme = isAlternate ? baseTheme : alternateTheme;
+      } else {
+        newTheme = isAlternate ? alternateTheme : baseTheme;
+      }
+      const changeGiscusTheme = () => {
+        // From: https://github.com/giscus/giscus/issues/336
+        const sendMessage = (message) => {
+          const iframe = document.querySelector('iframe.giscus-frame');
+          if (!iframe) return;
+          iframe.contentWindow.postMessage({ giscus: message }, 'https://giscus.app');
+        }
+        sendMessage({
+          setConfig: {
+            theme: newTheme
+          }
+        });
+      }
+      const isGiscussLoaded = window.document.querySelector('iframe.giscus-frame') !== null;
+      if (isGiscussLoaded) {
+        changeGiscusTheme();
+      }
+    };
+    const authorPrefersDark = false;
+    const darkModeDefault = authorPrefersDark;
+      document.querySelector('link#quarto-text-highlighting-styles.quarto-color-scheme-extra').rel = 'disabled-stylesheet';
+      document.querySelector('link#quarto-bootstrap.quarto-color-scheme-extra').rel = 'disabled-stylesheet';
+    let localAlternateSentinel = darkModeDefault ? 'alternate' : 'default';
+    // Dark / light mode switch
+    window.quartoToggleColorScheme = () => {
+      // Read the current dark / light value
+      let toAlternate = !hasAlternateSentinel();
+      toggleColorMode(toAlternate);
+      setStyleSentinel(toAlternate);
+      toggleGiscusIfUsed(toAlternate, darkModeDefault);
+      window.dispatchEvent(new Event('resize'));
+    };
+    // Switch to dark mode if need be
+    if (hasAlternateSentinel()) {
+      toggleColorMode(true);
+    } else {
+      toggleColorMode(false);
+    }
+  </script>
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top quarto-banner">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="../../index.html">
+    <span class="navbar-title">blog</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/jaj42"> <i class="bi bi-github" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://framagit.org/users/jaj/projects"> <i class="bi bi-gitlab" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://mastodon.social/@jaj"> <i class="bi bi-mastodon" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="../../index.xml"> <i class="bi bi-rss" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+  <a href="" class="quarto-color-scheme-toggle quarto-navigation-tool  px-1" onclick="window.quartoToggleColorScheme(); return false;" title="Toggle dark mode"><i class="bi"></i></a>
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<header id="title-block-header" class="quarto-title-block default page-columns page-full">
+  <div class="quarto-title-banner page-columns page-full">
+    <div class="quarto-title column-body">
+      <h1 class="title">Deep dive into STANPUMP</h1>
+                                <div class="quarto-categories">
+                <div class="quarto-category">pharmacometrics</div>
+                <div class="quarto-category">tci</div>
+              </div>
+                  </div>
+  </div>
+    
+  
+  <div class="quarto-title-meta">
+
+      <div>
+      <div class="quarto-title-meta-heading">Author</div>
+      <div class="quarto-title-meta-contents">
+               <p>Jona JOACHIM </p>
+            </div>
+    </div>
+      
+      <div>
+      <div class="quarto-title-meta-heading">Published</div>
+      <div class="quarto-title-meta-contents">
+        <p class="date">August 19, 2025</p>
+      </div>
+    </div>
+    
+      
+    </div>
+    
+  
+  </header><div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    
+<!-- main -->
+<main class="content quarto-banner-title-block" id="quarto-document-content">
+
+
+
+
+
+
+<section id="pharmacometrics-tci-and-stanpump" class="level2">
+<h2 class="anchored" data-anchor-id="pharmacometrics-tci-and-stanpump">Pharmacometrics, TCI and STANPUMP</h2>
+<p>Target Controlled Infusion (TCI) is a technique that uses real-time algorithms to control drug infusions. The goal is to quickly and safely achieve the desired drug concentration in a patient’s blood or at the drug’s effect site, without overshooting the target. While TCI can be used beyond anesthesia, it has found its widest application in perioperative settings, where anesthesia-related drugs are infused to maintain stable sedation during total intravenous anesthesia (TIVA).</p>
+<p>TCI relies on pharmacometric models called PKPD models (pharmacokinetic-pharmacodynamic models). These models describe how drugs move through and are processed by the body (pharmacokinetics) and how they affect the body (pharmacodynamics). Although the effect is typically sedation level, this isn’t always the case.</p>
+<p>Since TCI’s first uses in the 1980s<span class="citation" data-cites="struys_history_2016"><sup><a href="#ref-struys_history_2016" role="doc-biblioref">1</a></sup></span>, significant effort has been invested in developing new PKPD models. Today, these models are available for nearly every drug used in anesthesia. Extensive literature exists on PKPD models and their design, along with various software options for building and fitting these models. NONMEM is the best-known software, but many alternatives are available, including open-source options like nlmixr2<span class="citation" data-cites="nlmixr"><sup><a href="#ref-nlmixr" role="doc-biblioref">2</a></sup></span>.</p>
+<p>Most PKPD models for anesthesia are compartmental models with three compartments, where Cc typically represents the concentration of drug in the plasma. Additionally, Ce represents the concentration in the “effect compartment,” which drives the drug’s effect.</p>
+<p>However, implementing new models to give clinical insight requires integrating them into TCI systems. Currently, few TCI systems are available, and most are proprietary and closed-source. The algorithms used for TCI, which must inverse PKPD models, are not well documented. The only open-source TCI system I’m aware of is <a href="https://opentci.org/code/stanpump">STANPUMP</a> from the 1990s. In this blog post, I’ll take a deep dive into the STANPUMP source code to understand the underlying algorithms and explore implementing them in a modern way. My aim is to understand these algorithms and create a minimal open-source implementation as a foundation for future work.</p>
+</section>
+<section id="mathematics" class="level2">
+<h2 class="anchored" data-anchor-id="mathematics">Mathematics</h2>
+<p>PKPD models can be described by a set of ordinary differential equations (ODE) with one equation per compartment. In anesthesia, most drugs follow a 3-compartment model with can be mathematically described as follows:</p>
+<p><img src="Screenshot_20250819_135400.png" class="img-fluid"></p>
+<p><span id="eq-ode"><span class="math display">\[
+\begin{equation}
+\begin{aligned}
+\frac{dA_1}{dt} &amp; = A_2 k_{21} + A_3 k_{31} - A_1(k_{10} + k_{12} + k_{13}) + \text{Infusion} \\
+\frac{dA_2}{dt} &amp; = A_1 k_{12} - A_2 k_{21} \\
+\frac{dA_3}{dt} &amp; = A_1 k_{13} - A_3 k_{31} \\
+\frac{dC_e}{dt} &amp; = k_{e0}\left(\frac{A_1}{V_c} - C_e\right)
+\end{aligned}
+\end{equation}
+\tag{1}\]</span></span></p>
+<p><span class="math inline">\(A_n\)</span> is the amount of drug in compartment <span class="math inline">\(n\)</span>, <span class="math inline">\(k_ij\)</span> is the rate constant which describes the speed with which the drug moves from compartement <span class="math inline">\(i\)</span> to compartment <span class="math inline">\(j\)</span>. This is not Fick’s laws of diffusion because diffusion is driven by concentration, not by drug amount. It took me some time to understand that we are talking about the drug amount, not the concentration. This was difficult to understand especially since there is an exception for the effect site compartment <span class="math inline">\(Ce\)</span> where the rate constant <span class="math inline">\(k_e0\)</span> drives directly concentration. Once, the effect site compartment was treated as a regular compartment (with <span class="math inline">\(k_14\)</span> and <span class="math inline">\(k_41\)</span> rate constants). However, nowadays it is treated as a special compartment with zero volume and a single rate constant <span class="math inline">\(k_e0\)</span> (= <span class="math inline">\(k_41\)</span>) and <span class="math inline">\(k_14\)</span> is zero. Since the volume is zero, no drug actually moves to the compartment and it is driven by concentration. The plasma concentration <span class="math inline">\(Cc\)</span> is obtained by dividing the amount in the central compartment <span class="math inline">\(A_1\)</span> by <span class="math inline">\(Vc\)</span>, the volume of the central compartment.</p>
+<p>If we leave aside the infusion term for one moment, we can write the equations in matrix form as</p>
+<p><span class="math inline">\(\frac{dA}{dt} = S \cdot A^T\)</span></p>
+<p>Where <span class="math inline">\(A\)</span> is the vector <span class="math inline">\(\begin{pmatrix} A_1 &amp; A_2 &amp; A_3 \end{pmatrix}\)</span> and S is the system matrix.</p>
+<p><span class="math display">\[
+\mathbf{S} = \begin{pmatrix}
+-(k_{10} + k_{12} + k_{13}) &amp; k_{21} &amp; k_{31} \\
+k_{12} &amp; -k_{21} &amp; 0 \\
+k_{13} &amp; 0 &amp; -k_{31}
+\end{pmatrix}
+\]</span></p>
+<p>This expression can be integrated to obtain the following closed form expression:</p>
+<p><span id="eq-exponential"><span class="math display">\[
+Cc(t) = A_1 e^{-\lambda_1 t} + A_2 e^{-\lambda_2 t} + A_3 e^{-\lambda_3 t}
+\tag{2}\]</span></span></p>
+<p>You will also find it writtin as:</p>
+<p><span class="math display">\[
+Cc(t) = A e^{-\alpha t} + B e^{-\beta t} + C e^{-\gamma t}
+\]</span></p>
+<p>To obtain this expression, we need to calculate the exponential decay constants <span class="math inline">\(\lambda\)</span>, which are the eigenvalues of the system.</p>
+<p>However, this equation does not account for infusion, it describes the clearance from plasma starting from an initial value <span class="math inline">\(A\)</span>.</p>
+<p>If we want to solve the ODE system while taking into account the infusion term <span class="math inline">\(J\)</span>, the equation becomes more complicated<span class="citation" data-cites="shafer_algorithms_1992"><sup><a href="#ref-shafer_algorithms_1992" role="doc-biblioref">3</a></sup></span>,<span class="citation" data-cites="bailey_simple_1991"><sup><a href="#ref-bailey_simple_1991" role="doc-biblioref">4</a></sup></span>. This equation introduces coefficients <span class="math inline">\(c\)</span> which are outlined below.</p>
+<p><span class="math inline">\(Cc = \sum_{n} A_n e^{-\lambda_n dt} + c^p_n J (1 - e^{-\lambda_n dt})\)</span></p>
+<p>The equation can also be written for the effect site concentration:</p>
+<p><span class="math inline">\(Ce = \sum_{n} A_n e^{-\lambda_n dt} + c^e_n J (1 - e^{-\lambda_n dt})\)</span></p>
+<p>In this case, the vector A contains a fourth term for the effect compartment, <span class="math inline">\(k_e0\)</span> is added as a fourth term to <span class="math inline">\(\lambda\)</span> and different coefficients <span class="math inline">\(c_e\)</span> are used.</p>
+<p>These formulas are valid for constant infusion rate <span class="math inline">\(J\)</span>. If the infusion rate is changed, the solution can be calculated up to the last value during the previous infusion rate and this solution can be used as an initial state <span class="math inline">\(A\)</span> in the new formula with new rate constant.</p>
+<section id="pharmacokinetic-coefficient" class="level3">
+<h3 class="anchored" data-anchor-id="pharmacokinetic-coefficient">Pharmacokinetic Coefficient</h3>
+<p>This is the most frustrating part for me. I copied these coefficients from STANPUMP, but I don’t understand how to derive them mathematically. According to the literature, the derivation involves several complex steps: applying the Laplace transform<span class="citation" data-cites="shafer_algorithms_1992"><sup><a href="#ref-shafer_algorithms_1992" role="doc-biblioref">3</a></sup></span> to <a href="#eq-ode" class="quarto-xref">Equation&nbsp;1</a>, performing calculations in the Laplace domain, simplifying the expression using partial fraction decomposition, and then applying the inverse Laplace transform. Unfortunately, this level of mathematics is beyond my current understanding. I would be grateful if someone could explain how these coefficients are actually derived.</p>
+<section id="three-compartment-model" class="level4">
+<h4 class="anchored" data-anchor-id="three-compartment-model">Three Compartment Model</h4>
+<p><span class="math display">\[
+\begin{equation}
+\begin{aligned}
+c^p_1 &amp; = \frac{(k_{21} - \lambda_1)(k_{31} - \lambda_1)}{(\lambda_1 - \lambda_2)(\lambda_1 - \lambda_3) \cdot V_c \cdot \lambda_1}
+\\
+c^p_2 &amp; = \frac{(k_{21} - \lambda_2)(k_{31} - \lambda_2)}{(\lambda_2 - \lambda_1)(\lambda_2 - \lambda_3) \cdot V_c \cdot \lambda_2}
+\\
+c^p_3 &amp; = \frac{(k_{21} - \lambda_3)(k_{31} - \lambda_3)}{(\lambda_3 - \lambda_2)(\lambda_3 - \lambda_1) \cdot V_c \cdot \lambda_3}
+\\
+c^e_1 &amp; = c^p_1 \cdot \frac{k_{e0}}{k_{e0} - \lambda_1}
+\\
+c^e_2 &amp; = c^p_2 \cdot \frac{k_{e0}}{k_{e0} - \lambda_2}
+\\
+c^e_3 &amp; = c^p_3 \cdot \frac{k_{e0}}{k_{e0} - \lambda_3}
+\\
+c^e_4 &amp; = \frac{(k_{e0} - k_{21})(k_{e0} - k_{31})}{(\lambda_1 - k_{e0})(\lambda_2 - k_{e0})(\lambda_3 - k_{e0}) \cdot V_c}
+\end{aligned}
+\end{equation}
+\]</span></p>
+</section>
+</section>
+<section id="two-compartment-model" class="level3">
+<h3 class="anchored" data-anchor-id="two-compartment-model">Two Compartment Model</h3>
+<p><span class="math display">\[
+\begin{equation}
+\begin{aligned}
+c^p_1 &amp; = \frac{k_{21} - \lambda_1}{(\lambda_2 - \lambda_1) \cdot V_c \cdot \lambda_1}
+\\
+c^p_2 &amp; = \frac{k_{21} - \lambda_2}{(\lambda_1 - \lambda_2) \cdot V_c \cdot \lambda_2}
+\\
+c^e_1 &amp; = c^p_1 \cdot \frac{k_{e0}}{k_{e0} - \lambda_1}
+\\
+c^e_2 &amp; = c^p_2 \cdot \frac{k_{e0}}{k_{e0} - \lambda_2}
+\\
+c^e_3 &amp; = \frac{k_{21} - k_{e0}}{(\lambda_1 - k_{e0})(\lambda_2 - k_{e0}) \cdot V_c}
+\end{aligned}
+\end{equation}
+\]</span></p>
+</section>
+<section id="one-compartment-model" class="level3">
+<h3 class="anchored" data-anchor-id="one-compartment-model">One Compartment Model</h3>
+<p><span class="math display">\[
+\begin{equation}
+\begin{aligned}
+c^p_1 &amp; = \frac{1}{\lambda_1 \cdot V_c}
+\\
+e^p_2 &amp; = c^p_1 \cdot \frac{k_{e0}}{k_{e0} - \lambda_1}
+\\
+e^p_1 &amp; = \frac{1}{(\lambda_1 - k_{e0}) \cdot V_c}
+\end{aligned}
+\end{equation}
+\]</span></p>
+</section>
+</section>
+<section id="source-code" class="level2">
+<h2 class="anchored" data-anchor-id="source-code">Source code</h2>
+<p>Steven L. Shafer, one of the pioneers of TCI, wrote the original STANPUMP source code. From the beginning, Shafer intended for this software to be open source—a valuable contribution to the community. Later, Charles Minto established the Open TCI website, which serves as a repository for models and software related to PKPD and TCI. The latest version of STANPUMP is available at: <a href="https://opentci.org/code/stanpump">https://opentci.org/code/stanpump</a>.</p>
+<section id="bit-real-mode-msdos" class="level3">
+<h3 class="anchored" data-anchor-id="bit-real-mode-msdos">16-bit real mode MSDOS</h3>
+<p>STANPUMP was written for the MSDOS operating system, running on x86 systems in “real mode”. In real mode, program address physical memory directly with a maximum of 1 MB adressable memory. There is no memory protection and any memory location can be read and written by any program. The program interacts directly with the hardware through interrupts. This can for example be seen in the STANPUMP code which interacts with the keyboard or renders text on the screen.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode c code-with-copy"><code class="sourceCode c"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#define INT09   </span><span class="bn">0x0009</span><span class="pp">      </span><span class="co">/* Keyboard interrupt number           */</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#define INT1B   </span><span class="bn">0x001B</span><span class="pp">      </span><span class="co">/* Ctrl-C interrupt number             */</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#define INT23   </span><span class="bn">0x0023</span><span class="pp">      </span><span class="co">/* Ctrl-Break interrupt number         */</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> set_keyboard<span class="op">()</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>       OldInt09 <span class="op">=</span> _dos_getvect<span class="op">(</span> INT09 <span class="op">);</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>       OldInt1B <span class="op">=</span> _dos_getvect<span class="op">(</span> INT1B <span class="op">);</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>       OldInt23 <span class="op">=</span> _dos_getvect<span class="op">(</span> INT23 <span class="op">);</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>       KbdPtr <span class="op">=</span> Int09<span class="op">;</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>       _dos_setvect<span class="op">(</span> INT09<span class="op">,</span> KbdPtr <span class="op">);</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>       BrkPtr <span class="op">=</span> Int1B<span class="op">;</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>       _dos_setvect<span class="op">(</span> INT1B<span class="op">,</span> BrkPtr<span class="op">);</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>       BrkPtr <span class="op">=</span> Int23<span class="op">;</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>       _dos_setvect<span class="op">(</span> INT23<span class="op">,</span> BrkPtr <span class="op">);</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>       KbdCtrl  <span class="op">=</span> <span class="op">(</span>ADDRESS<span class="op">)</span> KBDFLAG<span class="op">;</span></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>       keyboard_reset <span class="op">=</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> gotoxy<span class="op">(</span>x<span class="op">,</span> y<span class="op">)</span></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> x<span class="op">,</span> y<span class="op">;</span></span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span>                   <span class="co">/* gotoxy */</span></span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>    REGS ir<span class="op">,</span> or<span class="op">;</span></span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>    ir<span class="op">.</span>h<span class="op">.</span>dh <span class="op">=</span> y<span class="op">;</span></span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>    ir<span class="op">.</span>h<span class="op">.</span>dl <span class="op">=</span> x<span class="op">;</span></span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>    ir<span class="op">.</span>h<span class="op">.</span>ah <span class="op">=</span> <span class="dv">2</span><span class="op">;</span></span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>    ir<span class="op">.</span>h<span class="op">.</span>bh <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>    int86<span class="op">(</span><span class="bn">0x10</span><span class="op">,</span> <span class="op">&amp;</span>ir<span class="op">,</span> <span class="op">&amp;</span>or<span class="op">);</span></span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span>                   <span class="co">/* gotoxy */</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</section>
+<section id="kr-vs.-ansi-c" class="level3">
+<h3 class="anchored" data-anchor-id="kr-vs.-ansi-c">K&amp;R vs.&nbsp;ANSI C</h3>
+<p>STANPUMP was written in the now obsolete K&amp;R style which was published in 1978 by Brian Kernighan and Dennis Ritchie.</p>
+<p>This is mostly visible in the function prototypes, for example:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode c code-with-copy"><code class="sourceCode c"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> cube<span class="op">(</span>k10<span class="op">,</span>k12<span class="op">,</span>k21<span class="op">,</span>k13<span class="op">,</span>k31<span class="op">,</span>r<span class="op">)</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="dt">double</span> k10<span class="op">,</span> k12<span class="op">,</span> k21<span class="op">,</span> k13<span class="op">,</span> k31<span class="op">;</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="dt">double</span> <span class="op">*</span>r<span class="op">;</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span>                   <span class="co">/* cube */</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">/* function code */</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span>                   <span class="co">/* cube */</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>This is the modern ANSI C equivalent of this prototype:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode c code-with-copy"><code class="sourceCode c"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> cube<span class="op">(</span><span class="dt">double</span> k10<span class="op">,</span> <span class="dt">double</span> k12<span class="op">,</span> <span class="dt">double</span> k21<span class="op">,</span> <span class="dt">double</span> k13<span class="op">,</span> <span class="dt">double</span> k31<span class="op">,</span> <span class="dt">double</span> <span class="op">*</span>r<span class="op">);</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</section>
+<section id="memory-allocations" class="level3">
+<h3 class="anchored" data-anchor-id="memory-allocations">Memory allocations</h3>
+<p>STANPUMP was designed to run on systems with severe memory constraints. The developers avoided heap allocation because it was unreliable on MS-DOS systems. Instead, they statically allocated all variables and shared program state through global variables. While global variables are discouraged in modern programming because they make it difficult to track program state and predict how functions interact, this approach was practical given the hardware limitations of the time. Despite these constraints, STANPUMP’s developers made several clever design choices to minimize memory and CPU usage. Their deep understanding of the underlying algorithms allowed them to precalculate certain values for later reuse, demonstrating sophisticated optimization techniques. One notable example is their introduction of “unit disposition functions” (UDFs).</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode c code-with-copy"><code class="sourceCode c"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">/* calculate udf, plasma concentration, for an infusion of 1/second */</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>p_udf<span class="op">[</span><span class="dv">0</span><span class="op">]</span> <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> <span class="op">(</span>i <span class="op">=</span> <span class="dv">1</span><span class="op">;</span>  i <span class="op">&lt;</span> <span class="dv">199</span><span class="op">;</span>  i<span class="op">++)</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    temp1 <span class="op">=</span> temp1 <span class="op">*</span> l1 <span class="op">+</span> p_coef<span class="op">[</span><span class="dv">1</span><span class="op">]</span> <span class="op">*</span> <span class="op">(</span><span class="dv">1</span> <span class="op">-</span> l1<span class="op">);</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    temp2 <span class="op">=</span> temp2 <span class="op">*</span> l2 <span class="op">+</span> p_coef<span class="op">[</span><span class="dv">2</span><span class="op">]</span> <span class="op">*</span> <span class="op">(</span><span class="dv">1</span> <span class="op">-</span> l2<span class="op">);</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    temp3 <span class="op">=</span> temp3 <span class="op">*</span> l3 <span class="op">+</span> p_coef<span class="op">[</span><span class="dv">3</span><span class="op">]</span> <span class="op">*</span> <span class="op">(</span><span class="dv">1</span> <span class="op">-</span> l3<span class="op">);</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    p_udf<span class="op">[</span>i<span class="op">]</span> <span class="op">=</span> temp1 <span class="op">+</span> temp2 <span class="op">+</span> temp3<span class="op">;</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>UDFs represent the step response of the model and are calculated for both plasma concentration and effect site concentration. They show how the model responds to a constant infusion of 1 unit of drug per second. This calculation is performed once and stored in memory, then the response vector can be scaled according to the actual infusion rate.</p>
+</section>
+<section id="calculation-of-eigenvalues" class="level3">
+<h3 class="anchored" data-anchor-id="calculation-of-eigenvalues">Calculation of Eigenvalues</h3>
+<p>STANPUMP uses closed-form solutions of the PKPD differential equations to improve calculation efficiency. These solutions have been derived and published by the authors and others<span class="citation" data-cites="shafer_algorithms_1992"><sup><a href="#ref-shafer_algorithms_1992" role="doc-biblioref">3</a></sup></span>,<span class="citation" data-cites="bailey_simple_1991"><sup><a href="#ref-bailey_simple_1991" role="doc-biblioref">4</a></sup></span>. To obtain these equations, the eigenvalues of the PKPD model must be calculated. In the early 1990s, mathematics libraries for eigenvalue calculations were not widely available, so the developers had to implement this manually. This calculation is handled in the CUBE.C source file. The process begins by calculating the determinant of the system matrix and expressing it as a depressed cubic equation: x³ + px + q = 0. Since off-the-shelf cubic equation solvers weren’t available in C during the 1990s, the authors implemented Girolamo Cardano’s 16th-century trigonometric solution to solve this equation and derive the eigenvalues. This approach was practical because trigonometric functions had been part of the C standard library since 1978 and were extended in 1989.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode c code-with-copy"><code class="sourceCode c"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> cube<span class="op">(</span>k10<span class="op">,</span>k12<span class="op">,</span>k21<span class="op">,</span>k13<span class="op">,</span>k31<span class="op">,</span>r<span class="op">)</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="dt">double</span> k10<span class="op">,</span> k12<span class="op">,</span> k21<span class="op">,</span> k13<span class="op">,</span> k31<span class="op">;</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="dt">double</span> <span class="op">*</span>r<span class="op">;</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span>                   <span class="co">/* cube */</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">double</span> a0<span class="op">,</span> a1<span class="op">,</span> a2<span class="op">;</span>  <span class="co">/* factors in cubic equation */</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">double</span> p<span class="op">,</span> q<span class="op">;</span>        <span class="co">/* factors in transformed equation */</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">double</span> phi<span class="op">;</span>         <span class="co">/* used for root solving */</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">double</span> r1<span class="op">;</span>          <span class="co">/* also used for root solving */</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>    <span class="dt">double</span> toradian<span class="op">;</span>    <span class="co">/* mathematical conversion from degrees to radians */</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>    toradian <span class="op">=</span> asin<span class="op">(</span><span class="fl">1.0</span><span class="op">)</span> <span class="op">*</span> <span class="fl">2.0</span> <span class="op">/</span> <span class="fl">180.0</span><span class="op">;</span> <span class="co">/* pi/180 */</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>k31 <span class="op">&gt;</span> <span class="dv">0</span><span class="op">)</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>        <span class="co">/* first take roots of X^3 + a2X^2 + a1X^1 + a0 = 0 */</span></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>        <span class="co">/* where the coefficients are : */</span></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>        a0 <span class="op">=</span> k10 <span class="op">*</span> k21 <span class="op">*</span> k31<span class="op">;</span></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>        a1 <span class="op">=</span> k10 <span class="op">*</span> k31 <span class="op">+</span> k21 <span class="op">*</span> k31 <span class="op">+</span> k21 <span class="op">*</span> k13 <span class="op">+</span> k10 <span class="op">*</span> k21 <span class="op">+</span> k31 <span class="op">*</span> k12<span class="op">;</span></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>        a2 <span class="op">=</span> k10 <span class="op">+</span> k12 <span class="op">+</span> k13 <span class="op">+</span> k21 <span class="op">+</span> k31<span class="op">;</span></span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>        <span class="co">/* now transform to x^3 + px + q = 0 */</span></span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>        p <span class="op">=</span> a1 <span class="op">-</span> <span class="op">(</span>a2 <span class="op">*</span> a2 <span class="op">/</span> <span class="fl">3.0</span><span class="op">);</span></span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>        q <span class="op">=</span> <span class="op">(</span><span class="dv">2</span> <span class="op">*</span> a2 <span class="op">*</span> a2 <span class="op">*</span> a2 <span class="op">/</span> <span class="fl">27.0</span><span class="op">)</span> <span class="op">-</span> <span class="op">(</span>a1 <span class="op">*</span> a2 <span class="op">/</span> <span class="fl">3.0</span><span class="op">)</span> <span class="op">+</span> a0<span class="op">;</span></span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>        r1 <span class="op">=</span> sqrt<span class="op">(-(</span>p <span class="op">*</span> p <span class="op">*</span> p<span class="op">)</span> <span class="op">/</span> <span class="fl">27.0</span><span class="op">);</span></span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>        phi <span class="op">=</span> <span class="op">(-</span>q <span class="op">/</span> <span class="fl">2.0</span><span class="op">)</span> <span class="op">/</span> r1<span class="op">;</span></span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>phi <span class="op">&gt;</span> <span class="dv">1</span><span class="op">)</span></span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a>            phi <span class="op">=</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a>        <span class="cf">else</span> <span class="cf">if</span> <span class="op">(</span>phi <span class="op">&lt;</span> <span class="op">-</span><span class="dv">1</span><span class="op">)</span></span>
+<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a>            phi <span class="op">=</span> <span class="op">-</span><span class="dv">1</span><span class="op">;</span></span>
+<span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a>        phi <span class="op">=</span> <span class="op">(</span>acos<span class="op">(</span>phi<span class="op">)</span> <span class="op">/</span> <span class="fl">3.0</span><span class="op">);</span></span>
+<span id="cb5-31"><a href="#cb5-31" aria-hidden="true" tabindex="-1"></a>        r1 <span class="op">=</span> <span class="fl">2.0</span> <span class="op">*</span> exp<span class="op">(</span>log<span class="op">(</span>r1<span class="op">)</span> <span class="op">/</span> <span class="fl">3.0</span><span class="op">);</span></span>
+<span id="cb5-32"><a href="#cb5-32" aria-hidden="true" tabindex="-1"></a>        r<span class="op">[</span><span class="dv">1</span><span class="op">]</span> <span class="op">=</span> <span class="op">-(</span>cos<span class="op">(</span>phi<span class="op">)</span> <span class="op">*</span> r1 <span class="op">-</span> a2 <span class="op">/</span> <span class="fl">3.0</span><span class="op">);</span></span>
+<span id="cb5-33"><a href="#cb5-33" aria-hidden="true" tabindex="-1"></a>        r<span class="op">[</span><span class="dv">2</span><span class="op">]</span> <span class="op">=</span> <span class="op">-(</span>cos<span class="op">(</span>phi <span class="op">+</span> <span class="fl">120.0</span> <span class="op">*</span> toradian<span class="op">)</span> <span class="op">*</span> r1 <span class="op">-</span> a2 <span class="op">/</span> <span class="fl">3.0</span><span class="op">);</span></span>
+<span id="cb5-34"><a href="#cb5-34" aria-hidden="true" tabindex="-1"></a>        r<span class="op">[</span><span class="dv">3</span><span class="op">]</span> <span class="op">=</span> <span class="op">-(</span>cos<span class="op">(</span>phi <span class="op">+</span> <span class="fl">240.0</span> <span class="op">*</span> toradian<span class="op">)</span> <span class="op">*</span> r1 <span class="op">-</span> a2 <span class="op">/</span> <span class="fl">3.0</span><span class="op">);</span></span>
+<span id="cb5-35"><a href="#cb5-35" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb5-36"><a href="#cb5-36" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span></span>
+<span id="cb5-37"><a href="#cb5-37" aria-hidden="true" tabindex="-1"></a>        <span class="op">{</span></span>
+<span id="cb5-38"><a href="#cb5-38" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>k21 <span class="op">&gt;</span> <span class="dv">0</span><span class="op">)</span></span>
+<span id="cb5-39"><a href="#cb5-39" aria-hidden="true" tabindex="-1"></a>            <span class="op">{</span></span>
+<span id="cb5-40"><a href="#cb5-40" aria-hidden="true" tabindex="-1"></a>            <span class="co">/* first take roots of X^2 - a1X^1 + a0 = 0 */</span></span>
+<span id="cb5-41"><a href="#cb5-41" aria-hidden="true" tabindex="-1"></a>            <span class="co">/* where the coefficients are : */</span></span>
+<span id="cb5-42"><a href="#cb5-42" aria-hidden="true" tabindex="-1"></a>            a0 <span class="op">=</span> k10 <span class="op">*</span> k21<span class="op">;</span></span>
+<span id="cb5-43"><a href="#cb5-43" aria-hidden="true" tabindex="-1"></a>            a1 <span class="op">=</span> <span class="op">-(</span>k10 <span class="op">+</span> k12 <span class="op">+</span> k21<span class="op">);</span></span>
+<span id="cb5-44"><a href="#cb5-44" aria-hidden="true" tabindex="-1"></a>            r<span class="op">[</span><span class="dv">1</span><span class="op">]</span> <span class="op">=</span> <span class="op">(-</span>a1 <span class="op">+</span> sqrt<span class="op">(</span>a1 <span class="op">*</span> a1 <span class="op">-</span> <span class="dv">4</span> <span class="op">*</span> a0<span class="op">))</span> <span class="op">/</span> <span class="dv">2</span><span class="op">;</span></span>
+<span id="cb5-45"><a href="#cb5-45" aria-hidden="true" tabindex="-1"></a>            r<span class="op">[</span><span class="dv">2</span><span class="op">]</span> <span class="op">=</span> <span class="op">(-</span>a1 <span class="op">-</span> sqrt<span class="op">(</span>a1 <span class="op">*</span> a1 <span class="op">-</span> <span class="dv">4</span> <span class="op">*</span> a0<span class="op">))</span> <span class="op">/</span> <span class="dv">2</span><span class="op">;</span></span>
+<span id="cb5-46"><a href="#cb5-46" aria-hidden="true" tabindex="-1"></a>            r<span class="op">[</span><span class="dv">3</span><span class="op">]</span> <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb5-47"><a href="#cb5-47" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb5-48"><a href="#cb5-48" aria-hidden="true" tabindex="-1"></a>        <span class="cf">else</span></span>
+<span id="cb5-49"><a href="#cb5-49" aria-hidden="true" tabindex="-1"></a>            <span class="op">{</span></span>
+<span id="cb5-50"><a href="#cb5-50" aria-hidden="true" tabindex="-1"></a>            <span class="co">/* one compartment model */</span></span>
+<span id="cb5-51"><a href="#cb5-51" aria-hidden="true" tabindex="-1"></a>            r<span class="op">[</span><span class="dv">1</span><span class="op">]</span> <span class="op">=</span> k10<span class="op">;</span></span>
+<span id="cb5-52"><a href="#cb5-52" aria-hidden="true" tabindex="-1"></a>            r<span class="op">[</span><span class="dv">2</span><span class="op">]</span> <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb5-53"><a href="#cb5-53" aria-hidden="true" tabindex="-1"></a>            r<span class="op">[</span><span class="dv">3</span><span class="op">]</span> <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb5-54"><a href="#cb5-54" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb5-55"><a href="#cb5-55" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb5-56"><a href="#cb5-56" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-57"><a href="#cb5-57" aria-hidden="true" tabindex="-1"></a>    <span class="co">/* sort - nothing fancy is needed */</span></span>
+<span id="cb5-58"><a href="#cb5-58" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>r<span class="op">[</span><span class="dv">2</span><span class="op">]</span> <span class="op">&gt;</span> r<span class="op">[</span><span class="dv">1</span><span class="op">])</span></span>
+<span id="cb5-59"><a href="#cb5-59" aria-hidden="true" tabindex="-1"></a>        swap<span class="op">(&amp;</span>r<span class="op">[</span><span class="dv">2</span><span class="op">],</span> <span class="op">&amp;</span>r<span class="op">[</span><span class="dv">1</span><span class="op">]);</span></span>
+<span id="cb5-60"><a href="#cb5-60" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>r<span class="op">[</span><span class="dv">3</span><span class="op">]</span> <span class="op">&gt;</span> r<span class="op">[</span><span class="dv">1</span><span class="op">])</span></span>
+<span id="cb5-61"><a href="#cb5-61" aria-hidden="true" tabindex="-1"></a>        swap<span class="op">(&amp;</span>r<span class="op">[</span><span class="dv">3</span><span class="op">],</span> <span class="op">&amp;</span>r<span class="op">[</span><span class="dv">1</span><span class="op">]);</span></span>
+<span id="cb5-62"><a href="#cb5-62" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>r<span class="op">[</span><span class="dv">3</span><span class="op">]</span> <span class="op">&gt;</span> r<span class="op">[</span><span class="dv">2</span><span class="op">])</span></span>
+<span id="cb5-63"><a href="#cb5-63" aria-hidden="true" tabindex="-1"></a>        swap<span class="op">(&amp;</span>r<span class="op">[</span><span class="dv">3</span><span class="op">],</span> <span class="op">&amp;</span>r<span class="op">[</span><span class="dv">2</span><span class="op">]);</span></span>
+<span id="cb5-64"><a href="#cb5-64" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span>                   <span class="co">/* cube */</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</section>
+<section id="core-algorithm" class="level3">
+<h3 class="anchored" data-anchor-id="core-algorithm">Core algorithm</h3>
+<p>To study the algorithm, I extracted the core functions, converted them to ANSI C, and created a minimal C program to run the algorithm. The source code for this project is available at: <a href="https://framagit.org/jaj/ministan/-/tree/main/c" class="uri">https://framagit.org/jaj/ministan/-/tree/main/c</a> I considered it essential to run the original STANPUMP code as a reference implementation. When algorithms are re-implemented, small errors can easily creep in and may be difficult to detect. Using the original STANPUMP as a control allows us to verify that our code produces correct output. In my adaptation, I moved all global variables into a struct called Config to serve as a centralized state container.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode c code-with-copy"><code class="sourceCode c"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">/* cube.c */</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> cube<span class="op">(</span><span class="dt">double</span> k10<span class="op">,</span> <span class="dt">double</span> k12<span class="op">,</span> <span class="dt">double</span> k21<span class="op">,</span> <span class="dt">double</span> k13<span class="op">,</span> <span class="dt">double</span> k31<span class="op">,</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>          <span class="dt">double</span> <span class="op">*</span>r<span class="op">);</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="co">/* udfs.c */</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> calculate_udfs<span class="op">(</span>Config <span class="op">*</span>cfg<span class="op">);</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="co">/* virtual_model.c */</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a><span class="dt">double</span> virtual_model<span class="op">(</span>Config <span class="op">*</span>cfg<span class="op">,</span> <span class="dt">double</span> vm1<span class="op">,</span> <span class="dt">double</span> vm2<span class="op">,</span> <span class="dt">double</span> vm3<span class="op">,</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>                     <span class="dt">double</span> vm4<span class="op">,</span> <span class="dt">int</span> t<span class="op">,</span> <span class="dt">int</span> flag<span class="op">);</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a><span class="co">/* find_peak.c */</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> find_peak<span class="op">(</span>Config <span class="op">*</span>cfg<span class="op">,</span> <span class="dt">int</span> current_time<span class="op">,</span> <span class="dt">double</span> rate<span class="op">,</span> <span class="dt">double</span> temp1e<span class="op">,</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>              <span class="dt">double</span> temp2e<span class="op">,</span> <span class="dt">double</span> temp3e<span class="op">,</span> <span class="dt">double</span> temp4e<span class="op">);</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a><span class="co">/* model.c */</span></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a><span class="dt">double</span> model<span class="op">(</span>Config <span class="op">*</span>cfg<span class="op">,</span> <span class="dt">double</span> temp1<span class="op">,</span> <span class="dt">double</span> temp2<span class="op">,</span> <span class="dt">double</span> temp3<span class="op">,</span></span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>             <span class="dt">double</span> temp1e<span class="op">,</span> <span class="dt">double</span> temp2e<span class="op">,</span> <span class="dt">double</span> temp3e<span class="op">,</span> <span class="dt">double</span> temp4e<span class="op">,</span></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>             <span class="dt">double</span> desired<span class="op">);</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>The cube() function was already discussed above. It calculates eigenvalues of the PK system which are widely used later in the code.</p>
+<p>The calculate_udfs() function calculates the “unit disposition functions” (UDF). A 10 second infusion is simulated at constant (unit) rate. Then the model is run until the model is run without infusion to see when the concentration peaks (peak_time). The peak_time (also called time to peak effect TTPE) is a caracteristic of the model. It is used later in the model() function. The calculate_udfs() function also calculates the <span class="math inline">\(c^p\)</span> and <span class="math inline">\(c^e\)</span> coefficients.</p>
+<p>The virtual_model() function runs the model without infusion rate for a specified time. This is useful to estimate where the concentrations are heading and to evaluate how rate needs to be adjusted.</p>
+<p>find_peak() is a hill climbing algorithm to find out when concentration will peak given the current infusion rate.</p>
+<p>The model() function is the main function of the algorithm. It orchestrates the other functions to find the optimal infusion rate for the given target.</p>
+</section>
+</section>
+<section id="reimplementation-in-python" class="level2">
+<h2 class="anchored" data-anchor-id="reimplementation-in-python">Reimplementation in Python</h2>
+<p>STANPUMP represents a remarkable combination of deep TCI algorithm knowledge and programming expertise. The authors derived mathematical solutions themselves to optimize performance and employed coding techniques that enabled real-time execution on very basic hardware. With over 10 years of clinical use, the software’s algorithms are thoroughly proven in practice. To experiment with the code and test it with my own models, I decided to reimplement it in Python. I began with a <a href="https://framagit.org/jaj/ministan/-/blob/main/python/ministan.py">1:1 translation</a> of the C code, then gradually modernized sections using contemporary approaches like array programming with NumPy<span class="citation" data-cites="harris2020array"><sup><a href="#ref-harris2020array" role="doc-biblioref">5</a></sup></span>.</p>
+<p>For example, the calculation of the eigenvalues is straightforward with NumPy:</p>
+<div id="877de2c5" class="cell" data-execution_count="1">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>A <span class="op">=</span> [</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    [<span class="op">-</span>(k10 <span class="op">+</span> k12 <span class="op">+</span> k13), k21, k31],</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    [k12, <span class="op">-</span>k21, <span class="dv">0</span>],</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    [k13, <span class="dv">0</span>, <span class="op">-</span>k31],</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>]</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>lambdas <span class="op">=</span> np.linalg.eigvals(A)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Some algorithms could probably be replaced by highly optimized functions from the SciPy library<span class="citation" data-cites="2020SciPy-NMeth"><sup><a href="#ref-2020SciPy-NMeth" role="doc-biblioref">6</a></sup></span>, such as the local maximum algorithms. There is still work to be done in this space.</p>
+<p>The current version of the code can be found here: <a href="https://framagit.org/jaj/ministan/-/blob/main/python/tci.py" class="uri">https://framagit.org/jaj/ministan/-/blob/main/python/tci.py</a></p>
+<p>Here is an example code of a simulation of the Gepts Sufentanil model<span class="citation" data-cites="gepts_linearity_1995"><sup><a href="#ref-gepts_linearity_1995" role="doc-biblioref">7</a></sup></span>:</p>
+<p>https://framagit.org/jaj/ministan/-/blob/main/python/sim_gepts.py</p>
+<p>The code calculates infusion rates for three different effect site targets and determines the resulting plasma and effect site concentrations for each rate. To validate these results, the code also solves the differential equations directly, providing an independent calculation method alongside the closed-form solutions.</p>
+<p><img src="Figure_1.png" class="img-fluid"></p>
+<p>The code could be coupled to a syringe pump control library such as InfuPy<span class="citation" data-cites="joachim_jona_infupy_2021"><sup><a href="#ref-joachim_jona_infupy_2021" role="doc-biblioref">8</a></sup></span> to drive syringe pumps with the calculated rates. Of course this can only be used for research purposes and under no circumstances on real patients. See <a href="https://www.demed.be/Rugloop%20&amp;%20TCI%20news.htm#Background" class="uri">https://www.demed.be/Rugloop%20&amp;%20TCI%20news.htm#Background</a> for more information on this topic.</p>
+</section>
+<section id="emulation" class="level2">
+<h2 class="anchored" data-anchor-id="emulation">Emulation</h2>
+<p>STANPUMP can still be run today on modern hardware using <a href="https://www.freedos.org/">FreeDOS</a>, an open source reimplementation of MS-DOS. I have briefly tested that the STANPUMP binary downloaded from OpenTCI runs with FreeDOS. Running the real STANPUMP program in emulation and comparing the calculated infusion rates can provide an additional layer of validation of the algorithms.</p>
+</section>
+<section id="references" class="level2">
+<h2 class="anchored" data-anchor-id="references">References</h2>
+<div id="refs" class="references csl-bib-body" role="list">
+<div id="ref-struys_history_2016" class="csl-entry" role="listitem">
+<div class="csl-left-margin">1. </div><div class="csl-right-inline">Struys MMRF, De Smet T, Glen J(Iain)B, Vereecke HEM, Absalom AR, Schnider TW. The <span>History</span> of <span>Target</span>-<span>Controlled</span> <span>Infusion</span>. <em>Anesthesia &amp; Analgesia</em> [Internet] 2016 [cited 2025 Aug 19]; <strong>122</strong>: 56–69 Available from: <a href="https://journals.lww.com/00000539-201601000-00015">https://journals.lww.com/00000539-201601000-00015</a></div>
+</div>
+<div id="ref-nlmixr" class="csl-entry" role="listitem">
+<div class="csl-left-margin">2. </div><div class="csl-right-inline">Fidler M, Wilkins J, Hooijmaijers R, et al. Nonlinear mixed-effects model development and simulation using nlmixr and related r open-source packages. <em>CPT: Pharmacometrics &amp; Systems Pharmacology</em> [Internet] Hoboken: John Wiley; Sons Inc.; 2019; <strong>8</strong>: 621–33 Available from: <a href="https://doi.org/10.1002/psp4.12445">https://doi.org/10.1002/psp4.12445</a></div>
+</div>
+<div id="ref-shafer_algorithms_1992" class="csl-entry" role="listitem">
+<div class="csl-left-margin">3. </div><div class="csl-right-inline">Shafer SL, Gregg KM. Algorithms to rapidly achieve and maintain stable drug concentrations at the site of drug effect with a computer-controlled infusion pump. <em>Journal of Pharmacokinetics and Biopharmaceutics</em> [Internet] 1992 [cited 2025 Aug 19]; <strong>20</strong>: 147–69 Available from: <a href="http://link.springer.com/10.1007/BF01070999">http://link.springer.com/10.1007/BF01070999</a></div>
+</div>
+<div id="ref-bailey_simple_1991" class="csl-entry" role="listitem">
+<div class="csl-left-margin">4. </div><div class="csl-right-inline">Bailey JM, Shafer SL. <a href="https://doi.org/10.1109/10.81576">A simple analytical solution to the three-compartment pharmacokinetic model suitable for computer-controlled infusion pumps</a>. <em>IEEE transactions on bio-medical engineering</em> 1991; <strong>38</strong>: 522–5 </div>
+</div>
+<div id="ref-harris2020array" class="csl-entry" role="listitem">
+<div class="csl-left-margin">5. </div><div class="csl-right-inline">Harris CR, Millman KJ, Walt SJ van der, et al. Array programming with <span>NumPy</span>. <em>Nature</em> [Internet] Springer Science; Business Media <span>LLC</span>; 2020; <strong>585</strong>: 357–62 Available from: <a href="https://doi.org/10.1038/s41586-020-2649-2">https://doi.org/10.1038/s41586-020-2649-2</a></div>
+</div>
+<div id="ref-2020SciPy-NMeth" class="csl-entry" role="listitem">
+<div class="csl-left-margin">6. </div><div class="csl-right-inline">Virtanen P, Gommers R, Oliphant TE, et al. <a href="https://doi.org/10.1038/s41592-019-0686-2"><span class="nocase"><span>SciPy</span> 1.0: Fundamental Algorithms for Scientific Computing in Python</span></a>. <em>Nature Methods</em> 2020; <strong>17</strong>: 261–72 </div>
+</div>
+<div id="ref-gepts_linearity_1995" class="csl-entry" role="listitem">
+<div class="csl-left-margin">7. </div><div class="csl-right-inline">Gepts E, Shafer SL, Camu F, et al. Linearity of <span>Pharmacokinetics</span> and <span>Model</span> <span>Estimation</span> of <span>Sufentanil</span>. <em>Anesthesiology</em> [Internet] 1995 [cited 2025 Aug 23]; <strong>83</strong>: 1194–204 Available from: <a href="https://journals.lww.com/00000542-199512000-00010">https://journals.lww.com/00000542-199512000-00010</a></div>
+</div>
+<div id="ref-joachim_jona_infupy_2021" class="csl-entry" role="listitem">
+<div class="csl-left-margin">8. </div><div class="csl-right-inline">Joachim J. <span>InfuPy</span> [Internet]. Zenodo; 2021 [cited 2021 Aug 16]. Available from: <a href="https://zenodo.org/record/5208192">https://zenodo.org/record/5208192</a></div>
+</div>
+</div>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    // Ensure there is a toggle, if there isn't float one in the top right
+    if (window.document.querySelector('.quarto-color-scheme-toggle') === null) {
+      const a = window.document.createElement('a');
+      a.classList.add('top-right');
+      a.classList.add('quarto-color-scheme-toggle');
+      a.href = "";
+      a.onclick = function() { try { window.quartoToggleColorScheme(); } catch {} return false; };
+      const i = window.document.createElement("i");
+      i.classList.add('bi');
+      a.appendChild(i);
+      window.document.body.appendChild(a);
+    }
+    setColorSchemeToggle(hasAlternateSentinel())
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+        const codeEl = trigger.previousElementSibling.cloneNode(true);
+        for (const childEl of codeEl.children) {
+          if (isCodeAnnotation(childEl)) {
+            childEl.remove();
+          }
+        }
+        return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/jaj42\.github\.io\/blog\/");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
