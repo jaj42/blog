@@ -1,7 +1,7 @@
 ---
 title: Deep dive into STANPUMP
 author: "Jona JOACHIM"
-date: "2025-08-19"
+date: "2025-08-24"
 categories: [pharmacometrics, tci]
 image: "Screenshot_20250819_135400.png"
 bibliography: references.bib
