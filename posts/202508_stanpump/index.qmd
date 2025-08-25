@@ -71,7 +71,7 @@ To obtain this expression, we need to calculate the exponential decay constants 
 
 However, this equation does not account for infusion, it describes the clearance from plasma starting from an initial value $B$.
 
-If we want to solve the ODE system while taking into account the infusion term $J$, the equation becomes more complicated @shafer_algorithms_1992,@bailey_simple_1991. This equation introduces coefficients $c_ji$ which are outlined below.
+If we want to solve the ODE system while taking into account the infusion term $J$, the equation becomes more complicated @shafer_algorithms_1992,@bailey_simple_1991. This equation introduces coefficients $c_{ji}$ which are outlined below.
 
 $Cc = \sum_{n} B_n e^{-\lambda_n dt} + c_{pn} J (1 - e^{-\lambda_n dt})$
 
@@ -330,7 +330,7 @@ double model(Config *cfg, double temp1, double temp2, double temp3,
 
 The cube() function was already discussed above. It calculates eigenvalues of the PK system which are widely used later in the code.
 
-The calculate_udfs() function calculates the "unit disposition functions" (UDF). A ten second infusion is simulated at constant (unit) rate. Then the model is run until the model is run without infusion to see when the concentration peaks (peak_time). The peak_time (also called time to peak effect TTPE) is a caracteristic of the model. It is used later in the model() function. The calculate_udfs() function also calculates the $c^p$ and $c^e$ coefficients.
+The calculate_udfs() function calculates the "unit disposition functions" (UDF). A ten second infusion is simulated at constant (unit) rate. Then the model is run until the model is run without infusion to see when the concentration peaks (peak_time). The peak_time (also called time to peak effect TTPE) is a caracteristic of the model. It is used later in the model() function. The calculate_udfs() function also calculates the $c_p$ and $c_e$ coefficients.
 
 The virtual_model() function runs the model without infusion rate for a specified time. This is useful to estimate where the concentrations are heading and to evaluate how rate needs to be adjusted.
 
