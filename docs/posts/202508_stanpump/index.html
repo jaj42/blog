@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Jona JOACHIM">
-<meta name="dcterms.date" content="2025-08-19">
+<meta name="dcterms.date" content="2025-08-24">
 
 <title>Deep dive into STANPUMP – blog</title>
 <style>
@@ -393,7 +393,7 @@ window.Quarto = {
       <div>
       <div class="quarto-title-meta-heading">Published</div>
       <div class="quarto-title-meta-contents">
-        <p class="date">August 19, 2025</p>
+        <p class="date">August 24, 2025</p>
       </div>
     </div>
     
@@ -435,7 +435,7 @@ window.Quarto = {
 \end{aligned}
 \end{equation}
 \tag{1}\]</span></span></p>
-<p><span class="math inline">\(A_n\)</span> is the amount of drug in compartment <span class="math inline">\(n\)</span>, <span class="math inline">\(k_ij\)</span> is the rate constant which describes the speed with which the drug moves from compartement <span class="math inline">\(i\)</span> to compartment <span class="math inline">\(j\)</span>. This is not Fick’s laws of diffusion because diffusion is driven by concentration, not by drug amount. It took me some time to understand that we are talking about the drug amount, not the concentration. This was difficult to understand especially since there is an exception for the effect site compartment <span class="math inline">\(Ce\)</span> where the rate constant <span class="math inline">\(k_e0\)</span> drives directly concentration. Once, the effect site compartment was treated as a regular compartment (with <span class="math inline">\(k_14\)</span> and <span class="math inline">\(k_41\)</span> rate constants). However, nowadays it is treated as a special compartment with zero volume and a single rate constant <span class="math inline">\(k_e0\)</span> (= <span class="math inline">\(k_41\)</span>) and <span class="math inline">\(k_14\)</span> is zero. Since the volume is zero, no drug actually moves to the compartment and it is driven by concentration. The plasma concentration <span class="math inline">\(Cc\)</span> is obtained by dividing the amount in the central compartment <span class="math inline">\(A_1\)</span> by <span class="math inline">\(Vc\)</span>, the volume of the central compartment.</p>
+<p><span class="math inline">\(A_n\)</span> is the amount of drug in compartment <span class="math inline">\(n\)</span>, <span class="math inline">\(k_ij\)</span> is the rate constant which describes the speed with which the drug moves from compartement <span class="math inline">\(i\)</span> to compartment <span class="math inline">\(j\)</span>. This is not Fick’s laws of diffusion because diffusion is driven by concentration, not by drug amount. It took me some time to understand that we are talking about the drug amount, not the concentration. This was difficult to understand especially since there is an exception for the effect site compartment <span class="math inline">\(Ce\)</span> where the rate constant <span class="math inline">\(k_{e0}\)</span> drives directly concentration. Once, the effect site compartment was treated as a regular compartment (with <span class="math inline">\(k_14\)</span> and <span class="math inline">\(k_41\)</span> rate constants). However, nowadays it is treated as a special compartment with zero volume and a single rate constant <span class="math inline">\(k_{e0}\)</span> (= <span class="math inline">\(k_{41}\)</span>) and <span class="math inline">\(k_14\)</span> is zero. Since the volume is zero, no drug actually moves to the compartment and it is driven by concentration. The plasma concentration <span class="math inline">\(Cc\)</span> is obtained by dividing the amount in the central compartment <span class="math inline">\(A_1\)</span> by <span class="math inline">\(Vc\)</span>, the volume of the central compartment.</p>
 <p>If we leave aside the infusion term for one moment, we can write the equations in matrix form as</p>
 <p><span class="math inline">\(\frac{dA}{dt} = S \cdot A^T\)</span></p>
 <p>Where <span class="math inline">\(A\)</span> is the vector <span class="math inline">\(\begin{pmatrix} A_1 &amp; A_2 &amp; A_3 \end{pmatrix}\)</span> and S is the system matrix.</p>
@@ -460,7 +460,7 @@ Cc(t) = A e^{-\alpha t} + B e^{-\beta t} + C e^{-\gamma t}
 <p><span class="math inline">\(Cc = \sum_{n} B_n e^{-\lambda_n dt} + c_{pn} J (1 - e^{-\lambda_n dt})\)</span></p>
 <p>The equation can also be written for the effect site concentration:</p>
 <p><span class="math inline">\(Ce = \sum_{n} B_n e^{-\lambda_n dt} + c_{en} J (1 - e^{-\lambda_n dt})\)</span></p>
-<p>In this case, the vector B contains a fourth term for the effect compartment, <span class="math inline">\(k_e0\)</span> is added as a fourth term to <span class="math inline">\(\lambda\)</span> and different coefficients <span class="math inline">\(c_e\)</span> are used.</p>
+<p>In this case, the vector B contains a fourth term for the effect compartment, <span class="math inline">\(k_{e0}\)</span> is added as a fourth term to <span class="math inline">\(\lambda\)</span> and different coefficients <span class="math inline">\(c_e\)</span> are used.</p>
 <p>These formulas are valid for constant infusion rate <span class="math inline">\(J\)</span>. If the infusion rate is changed, the solution can be calculated up to the last value during the previous infusion rate and this solution can be used as an initial state <span class="math inline">\(B\)</span> in the new formula with new rate constant.</p>
 <section id="pharmacokinetic-coefficient" class="level3">
 <h3 class="anchored" data-anchor-id="pharmacokinetic-coefficient">Pharmacokinetic Coefficient</h3>
@@ -487,9 +487,8 @@ c_{e4} &amp; = \frac{(k_{e0} - k_{21})(k_{e0} - k_{31})}{(\lambda_1 - k_{e0})(\l
 \end{equation}
 \]</span></p>
 </section>
-</section>
-<section id="two-compartment-model" class="level3">
-<h3 class="anchored" data-anchor-id="two-compartment-model">Two Compartment Model</h3>
+<section id="two-compartment-model" class="level4">
+<h4 class="anchored" data-anchor-id="two-compartment-model">Two Compartment Model</h4>
 <p><span class="math display">\[
 \begin{equation}
 \begin{aligned}
@@ -506,19 +505,20 @@ c_{e3} &amp; = \frac{k_{21} - k_{e0}}{(\lambda_1 - k_{e0})(\lambda_2 - k_{e0}) \
 \end{equation}
 \]</span></p>
 </section>
-<section id="one-compartment-model" class="level3">
-<h3 class="anchored" data-anchor-id="one-compartment-model">One Compartment Model</h3>
+<section id="one-compartment-model" class="level4">
+<h4 class="anchored" data-anchor-id="one-compartment-model">One Compartment Model</h4>
 <p><span class="math display">\[
 \begin{equation}
 \begin{aligned}
 c_{p1} &amp; = \frac{1}{\lambda_1 \cdot V_c}
 \\
-e^p_2 &amp; = c_{p1} \cdot \frac{k_{e0}}{k_{e0} - \lambda_1}
+c_{p2} &amp; = c_{p1} \cdot \frac{k_{e0}}{k_{e0} - \lambda_1}
 \\
-e^p_1 &amp; = \frac{1}{(\lambda_1 - k_{e0}) \cdot V_c}
+c_{e1} &amp; = \frac{1}{(\lambda_1 - k_{e0}) \cdot V_c}
 \end{aligned}
 \end{equation}
 \]</span></p>
+</section>
 </section>
 </section>
 <section id="source-code" class="level2">
@@ -690,7 +690,7 @@ e^p_1 &amp; = \frac{1}{(\lambda_1 - k_{e0}) \cdot V_c}
 <h2 class="anchored" data-anchor-id="reimplementation-in-python">Reimplementation in Python</h2>
 <p>STANPUMP represents a remarkable combination of deep TCI algorithm knowledge and programming expertise. The authors derived mathematical solutions themselves to optimize performance and employed coding techniques that enabled real-time execution on very basic hardware. With over 10 years of clinical use, the software’s algorithms are thoroughly proven in practice. To experiment with the code and test it with my own models, I decided to reimplement it in Python. I began with a <a href="https://framagit.org/jaj/ministan/-/blob/main/python/ministan.py">1:1 translation</a> of the C code, then gradually modernized sections using contemporary approaches like array programming with NumPy<span class="citation" data-cites="harris2020array"><sup><a href="#ref-harris2020array" role="doc-biblioref">5</a></sup></span>.</p>
 <p>For example, the calculation of the eigenvalues is straightforward with NumPy:</p>
-<div id="170b2f25" class="cell" data-execution_count="1">
+<div id="3b570ebe" class="cell" data-execution_count="1">
 <div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>A <span class="op">=</span> [</span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    [<span class="op">-</span>(k10 <span class="op">+</span> k12 <span class="op">+</span> k13), k21, k31],</span>
@@ -712,7 +712,7 @@ e^p_1 &amp; = \frac{1}{(\lambda_1 - k_{e0}) \cdot V_c}
 <p>STANPUMP can still be run today on modern hardware using <a href="https://www.freedos.org/">FreeDOS</a>, an open source reimplementation of MS-DOS. I have briefly tested that the STANPUMP binary obtained from OpenTCI runs with FreeDOS in the Qemu emulator. Running the real STANPUMP program in emulation and comparing the calculated infusion rates can provide an additional layer of validation of the algorithms.</p>
 <p><img src="stanpump.png" class="img-fluid"></p>
 <p>Here is an example screen with the Gepts model running:</p>
-<p><img src="stanpump.png" class="img-fluid"></p>
+<p><img src="stanpump2.png" class="img-fluid"></p>
 </section>
 <section id="references" class="level2">
 <h2 class="anchored" data-anchor-id="references">References</h2>
