@@ -378,7 +378,7 @@ STANPUMP can still be run today on modern hardware using [FreeDOS](https://www.f
 
 Here is an example screen with the Gepts model running:
 
-![](stanpump.png)
+![](stanpump2.png)
 
 
 ## References
