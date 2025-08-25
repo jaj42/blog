@@ -13,7 +13,7 @@ Target Controlled Infusion (TCI) is a technique that uses real-time algorithms t
 
 TCI relies on pharmacometric models called PKPD models (pharmacokinetic-pharmacodynamic models). These models describe how drugs move through and are processed by the body (pharmacokinetics) and how they affect the body (pharmacodynamics). Although the effect is typically sedation level, this isn't always the case.
 
-Since TCI's first uses in the 1980s @struys_history_2016, significant effort has been invested in developing new PKPD models. Today, these models are available for nearly every drug used in anesthesia. Extensive literature exists on PKPD models and their design, along with various software options for building and fitting these models. NONMEM is the best-known software, but many alternatives are available, including open-source options like nlmixr2 @nlmixr.
+Since TCI's first uses in the 1980s @struys_history_2016, significant effort has been invested in developing new PKPD models. Today, these models are available for nearly every drug used in anesthesia. Extensive literature exists on PKPD models and their design, along with various software options for building and fitting these models. NONMEM is the best-known software, but many alternatives are available, including open-source options like nlmixr2 @nlmixr and more recently [OpenPMX](https://github.com/deleveld/OpenPMX).
 
 Most PKPD models for anesthesia are compartmental models with three compartments, where Cc typically represents the concentration of drug in the plasma. Additionally, Ce represents the concentration in the "effect compartment," which drives the drug's effect.
 
