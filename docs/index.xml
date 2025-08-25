@@ -10,7 +10,7 @@
 <atom:link href="https://jaj42.github.io/blog/index.xml" rel="self" type="application/rss+xml"/>
 <description>Some things I want to share</description>
 <generator>quarto-1.7.33</generator>
-<lastBuildDate>Mon, 18 Aug 2025 22:00:00 GMT</lastBuildDate>
+<lastBuildDate>Sat, 23 Aug 2025 22:00:00 GMT</lastBuildDate>
 <item>
   <title>Deep dive into STANPUMP</title>
   <dc:creator>Jona JOACHIM</dc:creator>
@@ -1491,7 +1491,7 @@ font-style: inherit;">=</span> np.linalg.eigvals(A)</span></code></pre></div>
   <category>pharmacometrics</category>
   <category>tci</category>
   <guid>https://jaj42.github.io/blog/posts/202508_stanpump/</guid>
-  <pubDate>Mon, 18 Aug 2025 22:00:00 GMT</pubDate>
+  <pubDate>Sat, 23 Aug 2025 22:00:00 GMT</pubDate>
   <media:content url="https://jaj42.github.io/blog/posts/202508_stanpump/Screenshot_20250819_135400.png" medium="image" type="image/png" height="62" width="144"/>
 </item>
 <item>
