@@ -57,10 +57,11 @@ $$
 This expression can be integrated to obtain the following closed form expression:
 
 $$
-Cc(t) = A_1 e^{-\lambda_1 t} + A_2 e^{-\lambda_2 t} + A_3 e^{-\lambda_3 t}
+Cc(t) = B_1 e^{-\lambda_1 t} + B_2 e^{-\lambda_2 t} + B_3 e^{-\lambda_3 t}
 $$ {#eq-exponential}
 
-You will also find it writtin as:
+In this closed form solution, the $B$ terms are called hybrid rate constants and the $\lambda$ terms are called exponential decay constants.
+You will also find it written as:
 
 $$
 Cc(t) = A e^{-\alpha t} + B e^{-\beta t} + C e^{-\gamma t}
@@ -68,19 +69,19 @@ $$
 
 To obtain this expression, we need to calculate the exponential decay constants $\lambda$, which are the eigenvalues of the system.
 
-However, this equation does not account for infusion, it describes the clearance from plasma starting from an initial value $A$.
+However, this equation does not account for infusion, it describes the clearance from plasma starting from an initial value $B$.
 
-If we want to solve the ODE system while taking into account the infusion term $J$, the equation becomes more complicated @shafer_algorithms_1992,@bailey_simple_1991. This equation introduces coefficients $c$ which are outlined below.
+If we want to solve the ODE system while taking into account the infusion term $J$, the equation becomes more complicated @shafer_algorithms_1992,@bailey_simple_1991. This equation introduces coefficients $c_ji$ which are outlined below.
 
-$Cc = \sum_{n} A_n e^{-\lambda_n dt} + c^p_n J (1 - e^{-\lambda_n dt})$
+$Cc = \sum_{n} B_n e^{-\lambda_n dt} + c_{pn} J (1 - e^{-\lambda_n dt})$
 
 The equation can also be written for the effect site concentration:
 
-$Ce = \sum_{n} A_n e^{-\lambda_n dt} + c^e_n J (1 - e^{-\lambda_n dt})$
+$Ce = \sum_{n} B_n e^{-\lambda_n dt} + c_{en} J (1 - e^{-\lambda_n dt})$
 
-In this case, the vector A contains a fourth term for the effect compartment, $k_e0$ is added as a fourth term to $\lambda$ and different coefficients $c_e$ are used.
+In this case, the vector B contains a fourth term for the effect compartment, $k_e0$ is added as a fourth term to $\lambda$ and different coefficients $c_e$ are used.
 
-These formulas are valid for constant infusion rate $J$. If the infusion rate is changed, the solution can be calculated up to the last value during the previous infusion rate and this solution can be used as an initial state $A$ in the new formula with new rate constant.
+These formulas are valid for constant infusion rate $J$. If the infusion rate is changed, the solution can be calculated up to the last value during the previous infusion rate and this solution can be used as an initial state $B$ in the new formula with new rate constant.
 
 ### Pharmacokinetic Coefficient
 
@@ -91,19 +92,19 @@ This is the most frustrating part for me. I copied these coefficients from STANP
 $$
 \begin{equation}
 \begin{aligned}
-c^p_1 & = \frac{(k_{21} - \lambda_1)(k_{31} - \lambda_1)}{(\lambda_1 - \lambda_2)(\lambda_1 - \lambda_3) \cdot V_c \cdot \lambda_1}
+c_{p1} & = \frac{(k_{21} - \lambda_1)(k_{31} - \lambda_1)}{(\lambda_1 - \lambda_2)(\lambda_1 - \lambda_3) \cdot V_c \cdot \lambda_1}
 \\
-c^p_2 & = \frac{(k_{21} - \lambda_2)(k_{31} - \lambda_2)}{(\lambda_2 - \lambda_1)(\lambda_2 - \lambda_3) \cdot V_c \cdot \lambda_2}
+c_{p2} & = \frac{(k_{21} - \lambda_2)(k_{31} - \lambda_2)}{(\lambda_2 - \lambda_1)(\lambda_2 - \lambda_3) \cdot V_c \cdot \lambda_2}
 \\
-c^p_3 & = \frac{(k_{21} - \lambda_3)(k_{31} - \lambda_3)}{(\lambda_3 - \lambda_2)(\lambda_3 - \lambda_1) \cdot V_c \cdot \lambda_3}
+c_{p3} & = \frac{(k_{21} - \lambda_3)(k_{31} - \lambda_3)}{(\lambda_3 - \lambda_2)(\lambda_3 - \lambda_1) \cdot V_c \cdot \lambda_3}
 \\
-c^e_1 & = c^p_1 \cdot \frac{k_{e0}}{k_{e0} - \lambda_1}
+c_{e1} & = c_{p1} \cdot \frac{k_{e0}}{k_{e0} - \lambda_1}
 \\
-c^e_2 & = c^p_2 \cdot \frac{k_{e0}}{k_{e0} - \lambda_2}
+c_{e2} & = c_{p2} \cdot \frac{k_{e0}}{k_{e0} - \lambda_2}
 \\
-c^e_3 & = c^p_3 \cdot \frac{k_{e0}}{k_{e0} - \lambda_3}
+c_{e3} & = c_{p3} \cdot \frac{k_{e0}}{k_{e0} - \lambda_3}
 \\
-c^e_4 & = \frac{(k_{e0} - k_{21})(k_{e0} - k_{31})}{(\lambda_1 - k_{e0})(\lambda_2 - k_{e0})(\lambda_3 - k_{e0}) \cdot V_c}
+c_{e4} & = \frac{(k_{e0} - k_{21})(k_{e0} - k_{31})}{(\lambda_1 - k_{e0})(\lambda_2 - k_{e0})(\lambda_3 - k_{e0}) \cdot V_c}
 \end{aligned}
 \end{equation}
 $$
@@ -113,15 +114,15 @@ $$
 $$
 \begin{equation}
 \begin{aligned}
-c^p_1 & = \frac{k_{21} - \lambda_1}{(\lambda_2 - \lambda_1) \cdot V_c \cdot \lambda_1}
+c_{p1} & = \frac{k_{21} - \lambda_1}{(\lambda_2 - \lambda_1) \cdot V_c \cdot \lambda_1}
 \\
-c^p_2 & = \frac{k_{21} - \lambda_2}{(\lambda_1 - \lambda_2) \cdot V_c \cdot \lambda_2}
+c_{p2} & = \frac{k_{21} - \lambda_2}{(\lambda_1 - \lambda_2) \cdot V_c \cdot \lambda_2}
 \\
-c^e_1 & = c^p_1 \cdot \frac{k_{e0}}{k_{e0} - \lambda_1}
+c_{e1} & = c_{p1} \cdot \frac{k_{e0}}{k_{e0} - \lambda_1}
 \\
-c^e_2 & = c^p_2 \cdot \frac{k_{e0}}{k_{e0} - \lambda_2}
+c_{e2} & = c_{p2} \cdot \frac{k_{e0}}{k_{e0} - \lambda_2}
 \\
-c^e_3 & = \frac{k_{21} - k_{e0}}{(\lambda_1 - k_{e0})(\lambda_2 - k_{e0}) \cdot V_c}
+c_{e3} & = \frac{k_{21} - k_{e0}}{(\lambda_1 - k_{e0})(\lambda_2 - k_{e0}) \cdot V_c}
 \end{aligned}
 \end{equation}
 $$
@@ -131,9 +132,9 @@ $$
 $$
 \begin{equation}
 \begin{aligned}
-c^p_1 & = \frac{1}{\lambda_1 \cdot V_c}
+c_{p1} & = \frac{1}{\lambda_1 \cdot V_c}
 \\
-e^p_2 & = c^p_1 \cdot \frac{k_{e0}}{k_{e0} - \lambda_1}
+e^p_2 & = c_{p1} \cdot \frac{k_{e0}}{k_{e0} - \lambda_1}
 \\
 e^p_1 & = \frac{1}{(\lambda_1 - k_{e0}) \cdot V_c}
 \end{aligned}
@@ -367,11 +368,17 @@ The code calculates infusion rates for three different effect site targets and d
 
 ![](Figure_1.png)
 
-The code could be coupled to a syringe pump control library such as InfuPy @joachim_jona_infupy_2021 to drive syringe pumps with the calculated rates. Of course this can only be used for research purposes and under no circumstances on real patients. See <https://www.demed.be/Rugloop%20&%20TCI%20news.htm#Background> for more information on this topic.
+The code could be coupled to a syringe pump control library such as [InfuPy](https://github.com/jaj42/infupy) @joachim_jona_infupy_2021 to drive syringe pumps with the calculated rates. Of course this can only be used for research purposes and under no circumstances on real patients. See <https://www.demed.be/Rugloop%20&%20TCI%20news.htm#Background> for more information on this topic.
 
 ## Emulation
 
-STANPUMP can still be run today on modern hardware using [FreeDOS](https://www.freedos.org/), an open source reimplementation of MS-DOS. I have briefly tested that the STANPUMP binary downloaded from OpenTCI runs with FreeDOS. Running the real STANPUMP program in emulation and comparing the calculated infusion rates can provide an additional layer of validation of the algorithms.
+STANPUMP can still be run today on modern hardware using [FreeDOS](https://www.freedos.org/), an open source reimplementation of MS-DOS. I have briefly tested that the STANPUMP binary obtained from OpenTCI runs with FreeDOS in the Qemu emulator. Running the real STANPUMP program in emulation and comparing the calculated infusion rates can provide an additional layer of validation of the algorithms.
+
+![](stanpump.png)
+
+Here is an example screen with the Gepts model running:
+
+![](stanpump.png)
 
 
 ## References
