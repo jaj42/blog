@@ -109,7 +109,7 @@ c_{e4} & = \frac{(k_{e0} - k_{21})(k_{e0} - k_{31})}{(\lambda_1 - k_{e0})(\lambd
 \end{equation}
 $$
 
-### Two Compartment Model
+#### Two Compartment Model
 
 $$
 \begin{equation}
@@ -127,7 +127,7 @@ c_{e3} & = \frac{k_{21} - k_{e0}}{(\lambda_1 - k_{e0})(\lambda_2 - k_{e0}) \cdot
 \end{equation}
 $$
 
-### One Compartment Model
+#### One Compartment Model
 
 $$
 \begin{equation}
