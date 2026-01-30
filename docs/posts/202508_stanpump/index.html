@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.7.33">
+<meta name="generator" content="quarto-1.8.26">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -88,18 +88,19 @@ div.csl-indent {
 <meta name="quarto:offset" content="../../">
 <script src="../../site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="../../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../../site_libs/quarto-html/axe/axe-check.js" type="module"></script>
 <script src="../../site_libs/quarto-html/popper.min.js"></script>
 <script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="../../site_libs/quarto-html/anchor.min.js"></script>
 <link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-ea385d0e468b0dd5ea5bf0780b1290d9.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
-<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-dark-bc185b5c5bdbcb35c2eb49d8a876ef70.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
-<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-ea385d0e468b0dd5ea5bf0780b1290d9.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-587c61ba64f3a5504c4d52d930310e48.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-dark-b758ccaa5987ceb1b75504551e579abf.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-587c61ba64f3a5504c4d52d930310e48.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
 <script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../../site_libs/bootstrap/bootstrap-89548fa512ddf931f9fd5804e6894e2c.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
-<link href="../../site_libs/bootstrap/bootstrap-dark-e8467693cade115a0f5f92b0be3b50fa.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
-<link href="../../site_libs/bootstrap/bootstrap-89548fa512ddf931f9fd5804e6894e2c.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-960d9d362f81d399278ec3e29b622b37.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-dark-7c8e055e70d4b6a1e9086eb41eca0607.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="../../site_libs/bootstrap/bootstrap-960d9d362f81d399278ec3e29b622b37.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -142,7 +143,7 @@ const typesetMath = (el) => {
     var macros = [];
     for (var i = 0; i < mathElements.length; i++) {
       var texText = mathElements[i].firstChild;
-      if (mathElements[i].tagName == "SPAN") {
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
         window.katex.render(texText.data, mathElements[i], {
           displayMode: mathElements[i].classList.contains('display'),
           throwOnError: false,
@@ -527,7 +528,7 @@ c_{e1} &amp; = \frac{1}{(\lambda_1 - k_{e0}) \cdot V_c}
 <section id="bit-real-mode-msdos" class="level3">
 <h3 class="anchored" data-anchor-id="bit-real-mode-msdos">16-bit real mode MSDOS</h3>
 <p>STANPUMP was written for the MSDOS operating system, running on x86 systems in “real mode”. In real mode, program address physical memory directly with a maximum of 1 MB adressable memory. There is no memory protection and any memory location can be read and written by any program. The program interacts directly with the hardware through interrupts. This can for example be seen in the STANPUMP code which interacts with the keyboard or renders text on the screen.</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode c code-with-copy"><code class="sourceCode c"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#define INT09   </span><span class="bn">0x0009</span><span class="pp">      </span><span class="co">/* Keyboard interrupt number           */</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode c code-with-copy"><code class="sourceCode c"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#define INT09   </span><span class="bn">0x0009</span><span class="pp">      </span><span class="co">/* Keyboard interrupt number           */</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#define INT1B   </span><span class="bn">0x001B</span><span class="pp">      </span><span class="co">/* Ctrl-C interrupt number             */</span></span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#define INT23   </span><span class="bn">0x0023</span><span class="pp">      </span><span class="co">/* Ctrl-Break interrupt number         */</span></span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
@@ -559,25 +560,25 @@ c_{e1} &amp; = \frac{1}{(\lambda_1 - k_{e0}) \cdot V_c}
 <span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>    ir<span class="op">.</span>h<span class="op">.</span>ah <span class="op">=</span> <span class="dv">2</span><span class="op">;</span></span>
 <span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>    ir<span class="op">.</span>h<span class="op">.</span>bh <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
 <span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>    int86<span class="op">(</span><span class="bn">0x10</span><span class="op">,</span> <span class="op">&amp;</span>ir<span class="op">,</span> <span class="op">&amp;</span>or<span class="op">);</span></span>
-<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span>                   <span class="co">/* gotoxy */</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span>                   <span class="co">/* gotoxy */</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
 <section id="kr-vs.-ansi-c" class="level3">
 <h3 class="anchored" data-anchor-id="kr-vs.-ansi-c">K&amp;R vs.&nbsp;ANSI C</h3>
 <p>STANPUMP was written in the now obsolete K&amp;R style which was published in 1978 by Brian Kernighan and Dennis Ritchie.</p>
 <p>This is mostly visible in the function prototypes, for example:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode c code-with-copy"><code class="sourceCode c"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> cube<span class="op">(</span>k10<span class="op">,</span>k12<span class="op">,</span>k21<span class="op">,</span>k13<span class="op">,</span>k31<span class="op">,</span>r<span class="op">)</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode c code-with-copy"><code class="sourceCode c"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> cube<span class="op">(</span>k10<span class="op">,</span>k12<span class="op">,</span>k21<span class="op">,</span>k13<span class="op">,</span>k31<span class="op">,</span>r<span class="op">)</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="dt">double</span> k10<span class="op">,</span> k12<span class="op">,</span> k21<span class="op">,</span> k13<span class="op">,</span> k31<span class="op">;</span></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="dt">double</span> <span class="op">*</span>r<span class="op">;</span></span>
 <span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span>                   <span class="co">/* cube */</span></span>
 <span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">/* function code */</span></span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span>                   <span class="co">/* cube */</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span>                   <span class="co">/* cube */</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>This is the modern ANSI C equivalent of this prototype:</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode c code-with-copy"><code class="sourceCode c"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> cube<span class="op">(</span><span class="dt">double</span> k10<span class="op">,</span> <span class="dt">double</span> k12<span class="op">,</span> <span class="dt">double</span> k21<span class="op">,</span> <span class="dt">double</span> k13<span class="op">,</span> <span class="dt">double</span> k31<span class="op">,</span> <span class="dt">double</span> <span class="op">*</span>r<span class="op">);</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode c code-with-copy"><code class="sourceCode c"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> cube<span class="op">(</span><span class="dt">double</span> k10<span class="op">,</span> <span class="dt">double</span> k12<span class="op">,</span> <span class="dt">double</span> k21<span class="op">,</span> <span class="dt">double</span> k13<span class="op">,</span> <span class="dt">double</span> k31<span class="op">,</span> <span class="dt">double</span> <span class="op">*</span>r<span class="op">);</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
 <section id="memory-allocations" class="level3">
 <h3 class="anchored" data-anchor-id="memory-allocations">Memory allocations</h3>
 <p>STANPUMP was designed to run on systems with severe memory constraints. The developers avoided heap allocation because it was unreliable on MS-DOS systems. Instead, they statically allocated all variables and shared program state through global variables. While global variables are discouraged in modern programming because they make it difficult to track program state and predict how functions interact, this approach was practical given the hardware limitations of the time. Despite these constraints, STANPUMP’s developers made several clever design choices to minimize memory and CPU usage. Their deep understanding of the underlying algorithms allowed them to precalculate certain values for later reuse, demonstrating sophisticated optimization techniques. One notable example is their introduction of “unit disposition functions” (UDFs).</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode c code-with-copy"><code class="sourceCode c"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">/* calculate udf, plasma concentration, for an infusion of 1/second */</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode c code-with-copy"><code class="sourceCode c"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">/* calculate udf, plasma concentration, for an infusion of 1/second */</span></span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>p_udf<span class="op">[</span><span class="dv">0</span><span class="op">]</span> <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> <span class="op">(</span>i <span class="op">=</span> <span class="dv">1</span><span class="op">;</span>  i <span class="op">&lt;</span> <span class="dv">199</span><span class="op">;</span>  i<span class="op">++)</span></span>
 <span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span></span>
@@ -585,13 +586,13 @@ c_{e1} &amp; = \frac{1}{(\lambda_1 - k_{e0}) \cdot V_c}
 <span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    temp2 <span class="op">=</span> temp2 <span class="op">*</span> l2 <span class="op">+</span> p_coef<span class="op">[</span><span class="dv">2</span><span class="op">]</span> <span class="op">*</span> <span class="op">(</span><span class="dv">1</span> <span class="op">-</span> l2<span class="op">);</span></span>
 <span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    temp3 <span class="op">=</span> temp3 <span class="op">*</span> l3 <span class="op">+</span> p_coef<span class="op">[</span><span class="dv">3</span><span class="op">]</span> <span class="op">*</span> <span class="op">(</span><span class="dv">1</span> <span class="op">-</span> l3<span class="op">);</span></span>
 <span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    p_udf<span class="op">[</span>i<span class="op">]</span> <span class="op">=</span> temp1 <span class="op">+</span> temp2 <span class="op">+</span> temp3<span class="op">;</span></span>
-<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>UDFs represent the step response of the model and are calculated for both plasma concentration and effect site concentration. They show how the model responds to a constant infusion of 1 unit of drug per second. This calculation is performed once and stored in memory, then the response vector can be scaled according to the actual infusion rate.</p>
 </section>
 <section id="calculation-of-eigenvalues" class="level3">
 <h3 class="anchored" data-anchor-id="calculation-of-eigenvalues">Calculation of Eigenvalues</h3>
 <p>STANPUMP uses closed-form solutions of the PKPD differential equations to improve calculation efficiency. These solutions have been derived and published by the authors and others<span class="citation" data-cites="shafer_algorithms_1992"><sup><a href="#ref-shafer_algorithms_1992" role="doc-biblioref">3</a></sup></span>,<span class="citation" data-cites="bailey_simple_1991"><sup><a href="#ref-bailey_simple_1991" role="doc-biblioref">4</a></sup></span>. To obtain these equations, the eigenvalues of the PKPD model must be calculated. In the early 1990s, mathematics libraries for eigenvalue calculations were not widely available, so the developers had to implement this manually. This calculation is handled in the CUBE.C source file. The process begins by calculating the determinant of the system matrix and expressing it as a depressed cubic equation: x³ + px + q = 0. Since off-the-shelf cubic equation solvers weren’t available in C during the 1990s, the authors implemented Girolamo Cardano’s 16th-century trigonometric solution to solve this equation and derive the eigenvalues. This approach was practical because trigonometric functions had been part of the C standard library since 1978 and were extended in 1989.</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode c code-with-copy"><code class="sourceCode c"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> cube<span class="op">(</span>k10<span class="op">,</span>k12<span class="op">,</span>k21<span class="op">,</span>k13<span class="op">,</span>k31<span class="op">,</span>r<span class="op">)</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode c code-with-copy"><code class="sourceCode c"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> cube<span class="op">(</span>k10<span class="op">,</span>k12<span class="op">,</span>k21<span class="op">,</span>k13<span class="op">,</span>k31<span class="op">,</span>r<span class="op">)</span></span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="dt">double</span> k10<span class="op">,</span> k12<span class="op">,</span> k21<span class="op">,</span> k13<span class="op">,</span> k31<span class="op">;</span></span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="dt">double</span> <span class="op">*</span>r<span class="op">;</span></span>
 <span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">{</span>                   <span class="co">/* cube */</span></span>
@@ -654,13 +655,13 @@ c_{e1} &amp; = \frac{1}{(\lambda_1 - k_{e0}) \cdot V_c}
 <span id="cb5-61"><a href="#cb5-61" aria-hidden="true" tabindex="-1"></a>        swap<span class="op">(&amp;</span>r<span class="op">[</span><span class="dv">3</span><span class="op">],</span> <span class="op">&amp;</span>r<span class="op">[</span><span class="dv">1</span><span class="op">]);</span></span>
 <span id="cb5-62"><a href="#cb5-62" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>r<span class="op">[</span><span class="dv">3</span><span class="op">]</span> <span class="op">&gt;</span> r<span class="op">[</span><span class="dv">2</span><span class="op">])</span></span>
 <span id="cb5-63"><a href="#cb5-63" aria-hidden="true" tabindex="-1"></a>        swap<span class="op">(&amp;</span>r<span class="op">[</span><span class="dv">3</span><span class="op">],</span> <span class="op">&amp;</span>r<span class="op">[</span><span class="dv">2</span><span class="op">]);</span></span>
-<span id="cb5-64"><a href="#cb5-64" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span>                   <span class="co">/* cube */</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb5-64"><a href="#cb5-64" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span>                   <span class="co">/* cube */</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
 <section id="core-algorithm" class="level3">
 <h3 class="anchored" data-anchor-id="core-algorithm">Core algorithm</h3>
 <p>To study the algorithm, I extracted the core functions, converted them to ANSI C, and created a minimal C program to run the algorithm. The source code for this project is available at: <a href="https://framagit.org/jaj/ministan/-/tree/main/c" class="uri">https://framagit.org/jaj/ministan/-/tree/main/c</a>.</p>
 <p>I considered it essential to run the original STANPUMP code as a reference implementation. When algorithms are re-implemented, small errors can easily creep in and may be difficult to detect. Using the original STANPUMP as a control allows us to verify that our code produces correct output. In my adaptation, I moved all global variables into a struct called Config to serve as a centralized state container.</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode c code-with-copy"><code class="sourceCode c"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">/* cube.c */</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode c code-with-copy"><code class="sourceCode c"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">/* cube.c */</span></span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> cube<span class="op">(</span><span class="dt">double</span> k10<span class="op">,</span> <span class="dt">double</span> k12<span class="op">,</span> <span class="dt">double</span> k21<span class="op">,</span> <span class="dt">double</span> k13<span class="op">,</span> <span class="dt">double</span> k31<span class="op">,</span></span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>          <span class="dt">double</span> <span class="op">*</span>r<span class="op">);</span></span>
 <span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a></span>
@@ -678,7 +679,7 @@ c_{e1} &amp; = \frac{1}{(\lambda_1 - k_{e0}) \cdot V_c}
 <span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a><span class="co">/* model.c */</span></span>
 <span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a><span class="dt">double</span> model<span class="op">(</span>Config <span class="op">*</span>cfg<span class="op">,</span> <span class="dt">double</span> temp1<span class="op">,</span> <span class="dt">double</span> temp2<span class="op">,</span> <span class="dt">double</span> temp3<span class="op">,</span></span>
 <span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>             <span class="dt">double</span> temp1e<span class="op">,</span> <span class="dt">double</span> temp2e<span class="op">,</span> <span class="dt">double</span> temp3e<span class="op">,</span> <span class="dt">double</span> temp4e<span class="op">,</span></span>
-<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>             <span class="dt">double</span> desired<span class="op">);</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>             <span class="dt">double</span> desired<span class="op">);</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>The cube() function was already discussed above. It calculates eigenvalues of the PK system which are widely used later in the code.</p>
 <p>The calculate_udfs() function calculates the “unit disposition functions” (UDF). A ten second infusion is simulated at constant (unit) rate. Then the model is run until the model is run without infusion to see when the concentration peaks (peak_time). The peak_time (also called time to peak effect TTPE) is a caracteristic of the model. It is used later in the model() function. The calculate_udfs() function also calculates the <span class="math inline">\(c_p\)</span> and <span class="math inline">\(c_e\)</span> coefficients.</p>
 <p>The virtual_model() function runs the model without infusion rate for a specified time. This is useful to estimate where the concentrations are heading and to evaluate how rate needs to be adjusted.</p>
@@ -691,13 +692,13 @@ c_{e1} &amp; = \frac{1}{(\lambda_1 - k_{e0}) \cdot V_c}
 <p>STANPUMP represents a remarkable combination of deep TCI algorithm knowledge and programming expertise. The authors derived mathematical solutions themselves to optimize performance and employed coding techniques that enabled real-time execution on very basic hardware. With over 10 years of clinical use, the software’s algorithms are thoroughly proven in practice. To experiment with the code and test it with my own models, I decided to reimplement it in Python. I began with a <a href="https://framagit.org/jaj/ministan/-/blob/main/python/ministan.py">1:1 translation</a> of the C code, then gradually modernized sections using contemporary approaches like array programming with NumPy<span class="citation" data-cites="harris2020array"><sup><a href="#ref-harris2020array" role="doc-biblioref">5</a></sup></span>.</p>
 <p>For example, the calculation of the eigenvalues is straightforward with NumPy:</p>
 <div id="cac6129a" class="cell" data-execution_count="1">
-<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>A <span class="op">=</span> [</span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    [<span class="op">-</span>(k10 <span class="op">+</span> k12 <span class="op">+</span> k13), k21, k31],</span>
 <span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    [k12, <span class="op">-</span>k21, <span class="dv">0</span>],</span>
 <span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    [k13, <span class="dv">0</span>, <span class="op">-</span>k31],</span>
 <span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>]</span>
-<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>lambdas <span class="op">=</span> np.linalg.eigvals(A)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>lambdas <span class="op">=</span> np.linalg.eigvals(A)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>Some algorithms could probably be replaced by highly optimized functions from the SciPy library<span class="citation" data-cites="2020SciPy-NMeth"><sup><a href="#ref-2020SciPy-NMeth" role="doc-biblioref">6</a></sup></span>, such as the local maximum algorithms. There is still work to be done in this space.</p>
 <p>The current version of the code can be found here: <a href="https://framagit.org/jaj/ministan/-/blob/main/python/tci.py" class="uri">https://framagit.org/jaj/ministan/-/blob/main/python/tci.py</a></p>
@@ -746,7 +747,17 @@ c_{e1} &amp; = \frac{1}{(\lambda_1 - k_{e0}) \cdot V_c}
 
 </section>
 
-</main> <!-- /main -->
+<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" id="quarto-citation"><h2 class="anchored quarto-appendix-heading">Citation</h2><div><div class="quarto-appendix-secondary-label">BibTeX citation:</div><pre class="sourceCode code-with-copy quarto-appendix-bibtex"><code class="sourceCode bibtex">@online{joachim2025,
+  author = {Joachim, Jona},
+  title = {Deep Dive into {STANPUMP}},
+  date = {2025-08-24},
+  url = {https://jaj42.github.io/blog/posts/202508_stanpump/},
+  langid = {en}
+}
+</code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre><div class="quarto-appendix-secondary-label">For attribution, please cite this work as:</div><div id="ref-joachim2025" class="csl-entry quarto-appendix-citeas" role="listitem">
+<div class="">Joachim J. Deep dive into STANPUMP [Internet].
+2025. Available from: <a href="https://jaj42.github.io/blog/posts/202508_stanpump/">https://jaj42.github.io/blog/posts/202508_stanpump/</a></div>
+</div></div></section></div></main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
   window.document.addEventListener("DOMContentLoaded", function (event) {
     // Ensure there is a toggle, if there isn't float one in the top right
@@ -811,13 +822,14 @@ c_{e1} &amp; = \frac{1}{(\lambda_1 - k_{e0}) \cdot V_c}
       e.clearSelection();
     }
     const getTextToCopy = function(trigger) {
-        const codeEl = trigger.previousElementSibling.cloneNode(true);
-        for (const childEl of codeEl.children) {
-          if (isCodeAnnotation(childEl)) {
-            childEl.remove();
-          }
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
         }
-        return codeEl.innerText;
+      }
+      return codeEl.innerText;
     }
     const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
       text: getTextToCopy

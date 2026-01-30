@@ -1,27 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://jaj42.github.io/blog/posts/202508_stanpump/index.html</loc>
-    <lastmod>2025-08-25T19:29:40.870Z</lastmod>
+    <loc>https://jaj42.github.io/blog/index.html</loc>
+    <lastmod>2025-08-22T18:08:17.000Z</lastmod>
   </url>
   <url>
     <loc>https://jaj42.github.io/blog/posts/201004_gps/index.html</loc>
-    <lastmod>2025-08-19T11:36:32.081Z</lastmod>
-  </url>
-  <url>
-    <loc>https://jaj42.github.io/blog/index.html</loc>
-    <lastmod>2025-08-19T11:48:09.830Z</lastmod>
+    <lastmod>2025-08-22T18:08:17.000Z</lastmod>
   </url>
   <url>
     <loc>https://jaj42.github.io/blog/posts/201911_rflink/index.html</loc>
-    <lastmod>2025-08-19T11:50:04.553Z</lastmod>
+    <lastmod>2025-08-22T18:08:17.000Z</lastmod>
   </url>
   <url>
-    <loc>https://jaj42.github.io/blog/posts/201002_zsh/index.html</loc>
-    <lastmod>2025-08-19T10:28:28.039Z</lastmod>
+    <loc>https://jaj42.github.io/blog/posts/202508_stanpump/index.html</loc>
+    <lastmod>2026-01-30T22:36:32.202Z</lastmod>
   </url>
   <url>
     <loc>https://jaj42.github.io/blog/posts/201107_gprs/index.html</loc>
-    <lastmod>2025-08-19T10:28:28.039Z</lastmod>
+    <lastmod>2025-08-22T18:08:17.000Z</lastmod>
+  </url>
+  <url>
+    <loc>https://jaj42.github.io/blog/posts/201002_zsh/index.html</loc>
+    <lastmod>2025-08-22T18:08:17.000Z</lastmod>
   </url>
 </urlset>
