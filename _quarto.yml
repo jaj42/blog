@@ -3,9 +3,9 @@ project:
   output-dir: docs
 
 website:
-  title: "blog"
+  title: "Jona's blog"
   site-url: https://jaj42.github.io/blog/
-  description: "Some things I want to share"
+  description: "Things I want to share"
   navbar:
     right:
       - icon: github
