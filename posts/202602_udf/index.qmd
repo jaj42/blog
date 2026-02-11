@@ -12,7 +12,7 @@ citation:
 
 ## STANPUMP again
 
-In my [previous blog post](../202508_stanpump/), I took a deep dive into STANPUMP's source code to understand the underlying logic for Target-Controlled Infusion (TCI) and reimplemented a minimal version in Python. However, we only glimpsed over the actual core algorithm which calculates the required infusion rates to achieve target concentrations.
+In my [previous blog post](../202508_stanpump/index.html), I took a deep dive into STANPUMP's source code to understand the underlying logic for Target-Controlled Infusion (TCI) and reimplemented a minimal version in Python. However, we only glimpsed over the actual core algorithm which calculates the required infusion rates to achieve target concentrations.
 
 This post will show how the TCI algorithm works step by step, including initial bolus dosing, maintenance and target changes.
 The goal is to understand each step of the algorithm, an algorithm that runs every 10 seconds in operating rooms around the world.
