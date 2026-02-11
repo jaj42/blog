@@ -9,7 +9,7 @@
 <meta name="author" content="Jona Joachim">
 <meta name="dcterms.date" content="2026-02-11">
 
-<title>TCI and Unit Disposition Functions – Jona's blog</title>
+<title>Unit Disposition Functions and the TCI algorithm – Jona’s blog</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -325,7 +325,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <header id="title-block-header" class="quarto-title-block default page-columns page-full">
   <div class="quarto-title-banner page-columns page-full">
     <div class="quarto-title column-body">
-      <h1 class="title">TCI and Unit Disposition Functions</h1>
+      <h1 class="title">Unit Disposition Functions and the TCI algorithm</h1>
                                 <div class="quarto-categories">
                 <div class="quarto-category">pharmacometrics</div>
                 <div class="quarto-category">tci</div>
@@ -368,15 +368,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <section id="stanpump-again" class="level2">
 <h2 class="anchored" data-anchor-id="stanpump-again">STANPUMP again</h2>
-<p>In my <a href="../202508_stanpump/">previous blog post</a>, I took a deep dive into STANPUMP’s source code to understand the underlying algorithms for Target-Controlled Infusion (TCI) and reimplemented them in Python. However, we only glimpsed over the actual core algorithm which calculates the required infusion rates to achieve target concentrations.</p>
-<p>This post will show how the TCI algorithm works step by step, including:</p>
-<ul>
-<li>Initial bolus dosing</li>
-<li>Target maintenance</li>
-<li>Target increases</li>
-<li>Target decreases</li>
-</ul>
-<p>The goal is to understand every step of the algorithm that runs every 10 seconds in operating rooms around the world.</p>
+<p>In my <a href="../202508_stanpump/">previous blog post</a>, I took a deep dive into STANPUMP’s source code to understand the underlying logic for Target-Controlled Infusion (TCI) and reimplemented a minimal version in Python. However, we only glimpsed over the actual core algorithm which calculates the required infusion rates to achieve target concentrations.</p>
+<p>This post will show how the TCI algorithm works step by step, including initial bolus dosing, maintenance and target changes. The goal is to understand each step of the algorithm, an algorithm that runs every 10 seconds in operating rooms around the world.</p>
+<p>We will reuse Python code from the ministan repository: <a href="https://framagit.org/jaj/ministan/-/tree/main/python" class="uri">https://framagit.org/jaj/ministan/-/tree/main/python</a></p>
 </section>
 <section id="the-unit-disposition-function-udf" class="level2">
 <h2 class="anchored" data-anchor-id="the-unit-disposition-function-udf">The Unit Disposition Function (UDF)</h2>
@@ -386,22 +380,17 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </blockquote>
 <p>The UDF is pre-calculated once at the start of the case using these steps:</p>
 <ol type="1">
-<li><strong>Initialize</strong>: Start with empty compartments (all zeros)</li>
-<li><strong>Simulate a unit rate infusion</strong>: Run model with rate = 1 μg/s for <code>delta_seconds</code> (typically 10s)</li>
-<li><strong>Stop and observe</strong>: Set rate = 0 and continue simulation</li>
-<li><strong>Find peak</strong>: Record when effect site concentration reaches its maximum</li>
-<li><strong>Store trajectory</strong>: Save the concentration at each time point up to the peak</li>
+<li>Initialize: Start with empty compartments (all zeros)</li>
+<li>Simulate a unit rate infusion: Run model with rate = 1 unit/s for 10s</li>
+<li>Stop and observe: Set rate = 0 and continue simulation</li>
+<li>Find peak: Record when effect site concentration reaches its maximum</li>
+<li>Store trajectory: Save the concentration at each time point up to the peak</li>
 </ol>
-<p>For the Gepts Sufentanil model, this calculation shows:</p>
-<ul>
-<li>Peak occurs at 428 seconds</li>
-<li>The peak concentration is approximately 0.19 μg/L</li>
-<li>The shape reflects the complex interplay of distribution and elimination</li>
-</ul>
+<p>For the Gepts Sufentanil model, this calculation shows that the peak occurs at 428 seconds and is around 0.19 μg/L with 1 μg/s unit infusion. The shape of the UDF reflects the complex interplay of distribution and elimination between compartments.</p>
 <section id="the-power-of-linearity" class="level3">
 <h3 class="anchored" data-anchor-id="the-power-of-linearity">The Power of Linearity</h3>
 <p>Because the pharmacokinetic system is <strong>linear</strong>, the UDF enables elegant scaling:</p>
-<p><strong>Want to achieve 0.3 μg/L at the peak?</strong></p>
+<p>If you want to achieve 0.3 μg/L effect site bolus at the peak, you can follow these steps:</p>
 <ul>
 <li>UDF shows 1 μg/s -&gt; 0.19 μg/L at peak</li>
 <li>Therefore you need 0.3 / 0.19 = 1.58 μg/s for 10 seconds</li>
@@ -409,47 +398,44 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li>Formula: <code>rate = target / udf[peak_time]</code></li>
 </ul>
 <p>This is the foundation of the TCI algorithm: <strong>scale the unit response to achieve any target</strong>.</p>
-</section>
-<section id="single-initial-bolus-dose" class="level3">
-<h3 class="anchored" data-anchor-id="single-initial-bolus-dose">Single initial bolus dose</h3>
-<p>In the simple case, when only a bolus should be administered</p>
-<ul>
-<li>The rate is calculated using <code>rate = target / udf[peak_time]</code></li>
-<li>Rate is maintained for initial 10 seconds</li>
-<li>Rate is then set to zero (infusion stops)</li>
-<li>Drug redistributes between compartments</li>
-<li>Effect site concentration rises</li>
-<li>At peak time, Ce converges to target</li>
-<li>After peak time, Ce decreases as drug is distributed and metabolized</li>
-</ul>
-<p><img src="Figure_1.png" class="img-fluid"></p>
+<p>After the peak which occurs exactly at the target effett, the concentration decreases again as the drug is distributed and metabolized.</p>
+<div id="fig-bolus" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-bolus-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="Figure_1.png" class="img-fluid figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-bolus-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;1: TCI infusion based on a scaled UDF with a single initial bolus
+</figcaption>
+</figure>
+</div>
 </section>
 </section>
 <section id="implementing-the-tci-algorithm" class="level2">
 <h2 class="anchored" data-anchor-id="implementing-the-tci-algorithm">Implementing the TCI Algorithm</h2>
-<p>If you want to continue infusion after the initial bolus, an iterative algorithm is needed where the infusion rate is recalculated at every time step. Let’s go through the complete TCI algorithm, explaining each step.</p>
-<section id="define-the-pharmacokinetic-model" class="level3">
-<h3 class="anchored" data-anchor-id="define-the-pharmacokinetic-model">Define the Pharmacokinetic Model</h3>
-<p>We will use the Gepts Sufentanil model again. This code uses effect site concentrations but the same algorithm applies to plasma concentration targets.</p>
-<div id="b7f8dc13" class="cell" data-execution_count="1">
+<p>If you want to continue infusion after the initial bolus, an iterative algorithm is needed where the infusion rate is recalculated at every time step. Let’s go through the complete TCI algorithm, one step at a time.</p>
+<section id="the-pharmacometric-model" class="level3">
+<h3 class="anchored" data-anchor-id="the-pharmacometric-model">The Pharmacometric Model</h3>
+<p>We will use the Gepts Sufentanil model again since it is convenient. This code uses effect site concentrations but the same algorithm applies to plasma concentration targets.</p>
+<div id="134e856c" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> tci</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Gepts Sufentanil: 3-compartment model with effect site</span></span>
 <span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>gepts <span class="op">=</span> tci.Parameters(</span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    k10<span class="op">=</span><span class="fl">0.0645</span>,  <span class="co"># min⁻¹ - Elimination from central compartment</span></span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    k12<span class="op">=</span><span class="fl">0.1086</span>,  <span class="co"># min⁻¹ - Transfer: central → peripheral 1</span></span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    k13<span class="op">=</span><span class="fl">0.0229</span>,  <span class="co"># min⁻¹ - Transfer: central → peripheral 2 (slow)</span></span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    k21<span class="op">=</span><span class="fl">0.0245</span>,  <span class="co"># min⁻¹ - Transfer: peripheral 1 → central</span></span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    k31<span class="op">=</span><span class="fl">0.0013</span>,  <span class="co"># min⁻¹ - Transfer: peripheral 2 → central (very slow!)</span></span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    ke0<span class="op">=</span><span class="fl">0.112</span>,   <span class="co"># min⁻¹ - Effect site equilibration</span></span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    vc<span class="op">=</span><span class="fl">14.3</span>,     <span class="co"># L - Central compartment volume</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    k10<span class="op">=</span><span class="fl">0.0645</span>,</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    k12<span class="op">=</span><span class="fl">0.1086</span>,</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    k13<span class="op">=</span><span class="fl">0.0229</span>,</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    k21<span class="op">=</span><span class="fl">0.0245</span>,</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    k31<span class="op">=</span><span class="fl">0.0013</span>,</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    ke0<span class="op">=</span><span class="fl">0.112</span>,</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    vc<span class="op">=</span><span class="fl">14.3</span>,</span>
 <span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 <section id="convert-time-units-and-pre-compute-system-properties" class="level3">
 <h3 class="anchored" data-anchor-id="convert-time-units-and-pre-compute-system-properties">Convert Time Units and Pre-compute System Properties</h3>
-<div id="ea4094c0" class="cell" data-execution_count="2">
+<div id="a847e6a4" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Convert to seconds for 10-second update intervals</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>model_params <span class="op">=</span> gepts.per_seconds()</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>delta_seconds <span class="op">=</span> <span class="dv">10</span></span>
@@ -463,12 +449,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>udf <span class="op">=</span> np.array(udfs[<span class="dv">1</span>])  <span class="co"># Extract effect site UDF</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<p>The <code>calculate_lambdas()</code> function constructs the system matrix and computes its eigenvalues. Charles Minto recently wrote <a href="https://www.linkedin.com/feed/update/urn:li:activity:7426118342811213824/">a comprehensive document</a> which explains exactly how the eigenvalues are calculated in the STANPUMP code.</p>
+<p>The <code>calculate_lambdas()</code> function constructs the system matrix and computes its eigenvalues. Charles Minto recently wrote <a href="https://www.linkedin.com/feed/update/urn:li:activity:7426118342811213824/">a comprehensive document</a> which explains exactly how the eigenvalues are calculated in the STANPUMP code. Since the time steps are in seconds, the PKPD model parameters are scaled from minutes to seconds to ease calculations.</p>
 </section>
 <section id="the-main-simulation-loop" class="level3">
 <h3 class="anchored" data-anchor-id="the-main-simulation-loop">The Main Simulation Loop</h3>
-<p>The TCI algorithm runs every <code>delta_seconds</code> (10 seconds), recalculating the infusion rate based on the current target. In this simulation, I set an intial target at 0.2 ug/L, after 500 seconds it is increased to 0.3 and after 1000 seconds it is lowered to 0.1.</p>
-<div id="78e27cad" class="cell" data-execution_count="3">
+<p>The TCI algorithm runs every 10 seconds, recalculating the infusion rate based on the current target. These 10 seconds are a convention introduced by STANPUMP but this is a setting that can be modified.</p>
+<p>In this simulation, I set an intial effect site target at 0.2 μg/L. After 500 seconds it is increased to 0.3 μg/L and after 1000 seconds it is lowered to 0.1 μg/L.</p>
+<div id="0b73bd03" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Initialize simulation state</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>Ce <span class="op">=</span> np.zeros(<span class="dv">4</span>)</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>time <span class="op">=</span> [<span class="dv">0</span>]</span>
@@ -503,7 +490,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb3-32"><a href="#cb3-32" aria-hidden="true" tabindex="-1"></a>    <span class="co"># ------------------------------------------------------------------------</span></span>
 <span id="cb3-33"><a href="#cb3-33" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Apply infusion and update compartments</span></span>
 <span id="cb3-34"><a href="#cb3-34" aria-hidden="true" tabindex="-1"></a>    <span class="co"># ------------------------------------------------------------------------</span></span>
-<span id="cb3-35"><a href="#cb3-35" aria-hidden="true" tabindex="-1"></a>    Ce <span class="op">=</span> tci.update(Ce, lambdas, coefs.e_coef, rate, delta_seconds)</span>
+<span id="cb3-35"><a href="#cb3-35" aria-hidden="true" tabindex="-1"></a>    Ce <span class="op">=</span> model(Ce, lambdas, coefs.e_coef, rate, delta_seconds)</span>
 <span id="cb3-36"><a href="#cb3-36" aria-hidden="true" tabindex="-1"></a>    time.append(t <span class="op">+</span> delta_seconds)</span>
 <span id="cb3-37"><a href="#cb3-37" aria-hidden="true" tabindex="-1"></a>    analytic_ce.append(np.<span class="bu">sum</span>(Ce))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
@@ -513,16 +500,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>This is where the magic happens. The goal is to find an infusion rate such that the peak effect site concentration equals the target.</p>
 <section id="why-iteration-is-necessary" class="level4">
 <h4 class="anchored" data-anchor-id="why-iteration-is-necessary">Why Iteration is Necessary</h4>
-<ul>
-<li><strong>Peak time is dynamic</strong>: It depends on current compartment state AND infusion rate</li>
-<li>From empty state → peak at 428s</li>
-<li>From loaded state → peak might be at 60s, 120s, 200s…</li>
-<li>We must find the (rate, peak_time) pair that satisfies our goal</li>
-</ul>
+<p><strong>Peak time is dynamic</strong>, it depends on current compartment state <strong>and</strong> infusion rate. After the initial infusion, some drug will be present in the system and the context sensitive peak time will be lower than the original peak time. Calculting infusion rate based on the original peak time will lead to overshoot. Therefore we need to find the rate and peak_time pair that satisfieds our target.</p>
 </section>
 <section id="the-algorithm" class="level4">
 <h4 class="anchored" data-anchor-id="the-algorithm">The Algorithm</h4>
-<div id="1a9c86a9" class="cell" data-execution_count="4">
+<div id="8be8db78" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> calculate_rate(Ce, current_target, lambdas, udf, coefs, </span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>                   peak_time, delta_seconds):</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""</span></span>
@@ -539,185 +521,130 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Step 1: Predict concentration at estimated peak (no infusion)</span></span>
 <span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>        <span class="co"># ----------------------------------------------------------------</span></span>
 <span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>        <span class="co"># "Where will we be if we don't give any drug?"</span></span>
-<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>        virtual <span class="op">=</span> virtual_model(Ce, peak_time_tmp, lambdas)</span>
-<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>        </span>
-<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>        <span class="co"># ----------------------------------------------------------------</span></span>
-<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Step 2: Calculate the gap</span></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>        <span class="co"># STANPUMP has a virtual_model function for this which is just</span></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>        <span class="co"># a model function with rate fixed to 0 and additional caching</span></span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>        virtual <span class="op">=</span> model(Ce, lambdas, coefs, rate<span class="op">=</span><span class="dv">0</span>, dt<span class="op">=</span>peak_time_tmp)</span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>        </span>
 <span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>        <span class="co"># ----------------------------------------------------------------</span></span>
-<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>        residual <span class="op">=</span> current_target <span class="op">-</span> virtual</span>
-<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>        </span>
-<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>        <span class="co"># ----------------------------------------------------------------</span></span>
-<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Step 3: Calculate candidate rate using linearity</span></span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Step 2: Calculate the gap</span></span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>        <span class="co"># ----------------------------------------------------------------</span></span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>        gap <span class="op">=</span> current_target <span class="op">-</span> virtual</span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>        </span>
 <span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a>        <span class="co"># ----------------------------------------------------------------</span></span>
-<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>        rate_candidate <span class="op">=</span> residual <span class="op">/</span> udf[peak_time_tmp]</span>
-<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a>        </span>
-<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a>        <span class="co"># ----------------------------------------------------------------</span></span>
-<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Step 4: Handle target decrease (early exit)</span></span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Step 3: Calculate candidate rate using linearity</span></span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a>        <span class="co"># ----------------------------------------------------------------</span></span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a>        rate_candidate <span class="op">=</span> gap <span class="op">/</span> udf[peak_time_tmp]</span>
+<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a>        </span>
 <span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a>        <span class="co"># ----------------------------------------------------------------</span></span>
-<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Cannot "un-give" drug - set rate to 0 and let elimination work</span></span>
-<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> rate_candidate <span class="op">&lt;=</span> <span class="dv">0</span>:</span>
-<span id="cb4-34"><a href="#cb4-34" aria-hidden="true" tabindex="-1"></a>            rate_candidate <span class="op">=</span> <span class="dv">0</span></span>
-<span id="cb4-35"><a href="#cb4-35" aria-hidden="true" tabindex="-1"></a>            ok_condition <span class="op">=</span> <span class="va">True</span></span>
-<span id="cb4-36"><a href="#cb4-36" aria-hidden="true" tabindex="-1"></a>            <span class="cf">continue</span></span>
-<span id="cb4-37"><a href="#cb4-37" aria-hidden="true" tabindex="-1"></a>        </span>
-<span id="cb4-38"><a href="#cb4-38" aria-hidden="true" tabindex="-1"></a>        <span class="co"># ----------------------------------------------------------------</span></span>
-<span id="cb4-39"><a href="#cb4-39" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Step 5: Find actual peak time with this rate</span></span>
-<span id="cb4-40"><a href="#cb4-40" aria-hidden="true" tabindex="-1"></a>        <span class="co"># ----------------------------------------------------------------</span></span>
-<span id="cb4-41"><a href="#cb4-41" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Peak shifts based on current state + proposed rate</span></span>
-<span id="cb4-42"><a href="#cb4-42" aria-hidden="true" tabindex="-1"></a>        peak_time_tmp <span class="op">=</span> find_peak(</span>
-<span id="cb4-43"><a href="#cb4-43" aria-hidden="true" tabindex="-1"></a>            peak_time_tmp, rate_candidate, Ce, peak_time,</span>
-<span id="cb4-44"><a href="#cb4-44" aria-hidden="true" tabindex="-1"></a>            lambdas, udf, delta_seconds</span>
-<span id="cb4-45"><a href="#cb4-45" aria-hidden="true" tabindex="-1"></a>        )</span>
-<span id="cb4-46"><a href="#cb4-46" aria-hidden="true" tabindex="-1"></a>        </span>
-<span id="cb4-47"><a href="#cb4-47" aria-hidden="true" tabindex="-1"></a>        <span class="co"># ----------------------------------------------------------------</span></span>
-<span id="cb4-48"><a href="#cb4-48" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Step 6: Recalculate at NEW peak time</span></span>
-<span id="cb4-49"><a href="#cb4-49" aria-hidden="true" tabindex="-1"></a>        <span class="co"># ----------------------------------------------------------------</span></span>
-<span id="cb4-50"><a href="#cb4-50" aria-hidden="true" tabindex="-1"></a>        virtual <span class="op">=</span> virtual_model(Ce, peak_time_tmp, lambdas)</span>
-<span id="cb4-51"><a href="#cb4-51" aria-hidden="true" tabindex="-1"></a>        predicted_ce <span class="op">=</span> virtual <span class="op">+</span> udf[peak_time_tmp] <span class="op">*</span> rate_candidate</span>
-<span id="cb4-52"><a href="#cb4-52" aria-hidden="true" tabindex="-1"></a>        </span>
-<span id="cb4-53"><a href="#cb4-53" aria-hidden="true" tabindex="-1"></a>        <span class="co"># ----------------------------------------------------------------</span></span>
-<span id="cb4-54"><a href="#cb4-54" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Step 7: Check convergence (STANPUMP criterion)</span></span>
-<span id="cb4-55"><a href="#cb4-55" aria-hidden="true" tabindex="-1"></a>        <span class="co"># ----------------------------------------------------------------</span></span>
-<span id="cb4-56"><a href="#cb4-56" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Tolerance: 0.00001% of target (essentially machine precision)</span></span>
-<span id="cb4-57"><a href="#cb4-57" aria-hidden="true" tabindex="-1"></a>        ok_condition <span class="op">=</span> np.<span class="bu">abs</span>(predicted_ce <span class="op">-</span> current_target) <span class="op">&lt;=</span> <span class="fl">1e-7</span> <span class="op">*</span> current_target</span>
-<span id="cb4-58"><a href="#cb4-58" aria-hidden="true" tabindex="-1"></a>        </span>
-<span id="cb4-59"><a href="#cb4-59" aria-hidden="true" tabindex="-1"></a>        <span class="co"># If not converged: loop repeats with updated peak_time_tmp</span></span>
-<span id="cb4-60"><a href="#cb4-60" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Typically converges in 2-5 iterations</span></span>
+<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Step 4: Handle target decrease (early exit)</span></span>
+<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a>        <span class="co"># ----------------------------------------------------------------</span></span>
+<span id="cb4-34"><a href="#cb4-34" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Cannot "un-give" drug - set rate to 0 and let elimination work</span></span>
+<span id="cb4-35"><a href="#cb4-35" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> rate_candidate <span class="op">&lt;=</span> <span class="dv">0</span>:</span>
+<span id="cb4-36"><a href="#cb4-36" aria-hidden="true" tabindex="-1"></a>            rate_candidate <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb4-37"><a href="#cb4-37" aria-hidden="true" tabindex="-1"></a>            <span class="cf">break</span></span>
+<span id="cb4-38"><a href="#cb4-38" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb4-39"><a href="#cb4-39" aria-hidden="true" tabindex="-1"></a>        <span class="co"># ----------------------------------------------------------------</span></span>
+<span id="cb4-40"><a href="#cb4-40" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Step 5: Find actual peak time with this rate</span></span>
+<span id="cb4-41"><a href="#cb4-41" aria-hidden="true" tabindex="-1"></a>        <span class="co"># ----------------------------------------------------------------</span></span>
+<span id="cb4-42"><a href="#cb4-42" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Peak shifts based on current state + proposed rate</span></span>
+<span id="cb4-43"><a href="#cb4-43" aria-hidden="true" tabindex="-1"></a>        peak_time_tmp <span class="op">=</span> find_peak(</span>
+<span id="cb4-44"><a href="#cb4-44" aria-hidden="true" tabindex="-1"></a>            peak_time_tmp, rate_candidate, Ce, peak_time,</span>
+<span id="cb4-45"><a href="#cb4-45" aria-hidden="true" tabindex="-1"></a>            lambdas, udf, delta_seconds</span>
+<span id="cb4-46"><a href="#cb4-46" aria-hidden="true" tabindex="-1"></a>        )</span>
+<span id="cb4-47"><a href="#cb4-47" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb4-48"><a href="#cb4-48" aria-hidden="true" tabindex="-1"></a>        <span class="co"># ----------------------------------------------------------------</span></span>
+<span id="cb4-49"><a href="#cb4-49" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Step 6: Recalculate at NEW peak time</span></span>
+<span id="cb4-50"><a href="#cb4-50" aria-hidden="true" tabindex="-1"></a>        <span class="co"># ----------------------------------------------------------------</span></span>
+<span id="cb4-51"><a href="#cb4-51" aria-hidden="true" tabindex="-1"></a>        virtual <span class="op">=</span> model(Ce, lambdas, coefs, rate<span class="op">=</span><span class="dv">0</span>, dt<span class="op">=</span>peak_time_tmp)</span>
+<span id="cb4-52"><a href="#cb4-52" aria-hidden="true" tabindex="-1"></a>        predicted_ce <span class="op">=</span> virtual <span class="op">+</span> udf[peak_time_tmp] <span class="op">*</span> rate_candidate</span>
+<span id="cb4-53"><a href="#cb4-53" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb4-54"><a href="#cb4-54" aria-hidden="true" tabindex="-1"></a>        <span class="co"># ----------------------------------------------------------------</span></span>
+<span id="cb4-55"><a href="#cb4-55" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Step 7: Check convergence (STANPUMP criterion)</span></span>
+<span id="cb4-56"><a href="#cb4-56" aria-hidden="true" tabindex="-1"></a>        <span class="co"># ----------------------------------------------------------------</span></span>
+<span id="cb4-57"><a href="#cb4-57" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Tolerance for simulation: 0.00001% of target</span></span>
+<span id="cb4-58"><a href="#cb4-58" aria-hidden="true" tabindex="-1"></a>        ok_condition <span class="op">=</span> np.<span class="bu">abs</span>(predicted_ce <span class="op">-</span> current_target) <span class="op">&lt;=</span> <span class="fl">1e-7</span> <span class="op">*</span> current_target</span>
+<span id="cb4-59"><a href="#cb4-59" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb4-60"><a href="#cb4-60" aria-hidden="true" tabindex="-1"></a>        <span class="co"># If not converged: loop repeats with updated peak_time_tmp</span></span>
 <span id="cb4-61"><a href="#cb4-61" aria-hidden="true" tabindex="-1"></a>    </span>
 <span id="cb4-62"><a href="#cb4-62" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> rate_candidate</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
-<section id="supporting-functions" class="level4">
-<h4 class="anchored" data-anchor-id="supporting-functions">Supporting Functions</h4>
-<p><strong>Virtual Model</strong>: Projects current state forward in time</p>
-<div id="8a70f5c9" class="cell" data-execution_count="5">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> virtual_model(A, t, lambdas):</span>
+<section id="find-peak-function" class="level4">
+<h4 class="anchored" data-anchor-id="find-peak-function">Find Peak function</h4>
+<p>Find when effect site concentration peaks with given rate.</p>
+<div id="c6854922" class="cell" data-execution_count="5">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> find_peak(current_time, rate, Ce, peak_time, lambdas, udf, delta_seconds):</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""</span></span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="co">    Predict drug concentration at time t given current state.</span></span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="co">    Assumes no infusion (rate = 0).</span></span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="co">    """</span></span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    decay <span class="op">=</span> np.exp(<span class="op">-</span>lambdas <span class="op">*</span> t)</span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> np.<span class="bu">sum</span>(A <span class="op">*</span> decay)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="co">    Find when effect site concentration peaks with given rate.</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="co">    Uses hill-climbing search.</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="co">    Could probably be replaced by Brent's Method.</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="co">    """</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Calculate concentrations at three time points</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    current <span class="op">=</span> model(Ce, lambdas, <span class="dv">0</span>, rate<span class="op">=</span><span class="dv">0</span>, dt<span class="op">=</span>current_time) <span class="op">+</span> udf[current_time] <span class="op">*</span> rate</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>    earlier <span class="op">=</span> model(Ce, lambdas, <span class="dv">0</span>, rate<span class="op">=</span><span class="dv">0</span>, dt<span class="op">=</span>current_time <span class="op">-</span> <span class="dv">1</span>) <span class="op">+</span> udf[current_time <span class="op">-</span> <span class="dv">1</span>] <span class="op">*</span> rate</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>    later <span class="op">=</span> model(Ce, lambdas, <span class="dv">0</span>, rate<span class="op">=</span><span class="dv">0</span>, dt<span class="op">=</span>current_time <span class="op">+</span> <span class="dv">1</span>) <span class="op">+</span> udf[current_time <span class="op">+</span> <span class="dv">1</span>] <span class="op">*</span> rate</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Search for local maximum</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">while</span> current <span class="op">&lt;</span> earlier <span class="kw">or</span> current <span class="op">&lt;</span> later:</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> current <span class="op">&lt;</span> earlier:</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> current_time <span class="op">==</span> delta_seconds:</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>                <span class="cf">return</span> current_time</span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>            current_time <span class="op">-=</span> <span class="dv">1</span></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>            later <span class="op">=</span> current</span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>            current <span class="op">=</span> earlier</span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>            earlier <span class="op">=</span> (model(Ce, lambdas, <span class="dv">0</span>, rate<span class="op">=</span><span class="dv">0</span>, dt<span class="op">=</span>current_time <span class="op">-</span> <span class="dv">1</span>) <span class="op">+</span> </span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>                      udf[current_time <span class="op">-</span> <span class="dv">1</span>] <span class="op">*</span> rate)</span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>        <span class="cf">else</span>:</span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>            current_time <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>            earlier <span class="op">=</span> current</span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>            current <span class="op">=</span> later</span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>            later <span class="op">=</span> (model(Ce, lambdas, <span class="dv">0</span>, rate<span class="op">=</span><span class="dv">0</span>, dt<span class="op">=</span>current_time <span class="op">+</span> <span class="dv">1</span>) <span class="op">+</span> </span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a>                    udf[current_time <span class="op">+</span> <span class="dv">1</span>] <span class="op">*</span> rate)</span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> current_time</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<p><strong>Find Peak</strong>: Searches for concentration maximum</p>
-<div id="530fdcc4" class="cell" data-execution_count="6">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> find_peak(current_time, rate, Ce, peak_time, lambdas, udf, delta_seconds):</span>
+</section>
+</section>
+<section id="compartment-update" class="level3">
+<h3 class="anchored" data-anchor-id="compartment-update">Compartment Update</h3>
+<p>After calculating the rate, we need to run the model for <code>delta_seconds</code> to obtain our next effect site concentration.</p>
+<p>The expensive linear algebra happened only <strong>once</strong> in the beginning of the session. The real-time algorithm is just arithmetic and array access which was fast enough to run on a 1990s microcontroller.</p>
+<div id="07d1b67e" class="cell" data-execution_count="6">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> model(A, lambdas, coefs, rate, dt):</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""</span></span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="co">    Find when effect site concentration peaks with given rate.</span></span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="co">    Uses hill-climbing search.</span></span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="co">    """</span></span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Calculate concentrations at three time points</span></span>
-<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    current <span class="op">=</span> (virtual_model(Ce, current_time, lambdas) <span class="op">+</span> </span>
-<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>              udf[current_time] <span class="op">*</span> rate)</span>
-<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    earlier <span class="op">=</span> (virtual_model(Ce, current_time <span class="op">-</span> <span class="dv">1</span>, lambdas) <span class="op">+</span> </span>
-<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>              udf[current_time <span class="op">-</span> <span class="dv">1</span>] <span class="op">*</span> rate)</span>
-<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>    later <span class="op">=</span> (virtual_model(Ce, current_time <span class="op">+</span> <span class="dv">1</span>, lambdas) <span class="op">+</span> </span>
-<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>            udf[current_time <span class="op">+</span> <span class="dv">1</span>] <span class="op">*</span> rate)</span>
-<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Search for local maximum</span></span>
-<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">while</span> current <span class="op">&lt;</span> earlier <span class="kw">or</span> current <span class="op">&lt;</span> later:</span>
-<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> current <span class="op">&lt;</span> earlier:</span>
-<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> current_time <span class="op">==</span> delta_seconds:</span>
-<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>                <span class="cf">return</span> current_time</span>
-<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>            current_time <span class="op">-=</span> <span class="dv">1</span></span>
-<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>            later <span class="op">=</span> current</span>
-<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>            current <span class="op">=</span> earlier</span>
-<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>            earlier <span class="op">=</span> (virtual_model(Ce, current_time <span class="op">-</span> <span class="dv">1</span>, lambdas) <span class="op">+</span> </span>
-<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a>                      udf[current_time <span class="op">-</span> <span class="dv">1</span>] <span class="op">*</span> rate)</span>
-<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a>        <span class="cf">else</span>:</span>
-<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a>            current_time <span class="op">+=</span> <span class="dv">1</span></span>
-<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a>            earlier <span class="op">=</span> current</span>
-<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a>            current <span class="op">=</span> later</span>
-<span id="cb6-28"><a href="#cb6-28" aria-hidden="true" tabindex="-1"></a>            later <span class="op">=</span> (virtual_model(Ce, current_time <span class="op">+</span> <span class="dv">1</span>, lambdas) <span class="op">+</span> </span>
-<span id="cb6-29"><a href="#cb6-29" aria-hidden="true" tabindex="-1"></a>                    udf[current_time <span class="op">+</span> <span class="dv">1</span>] <span class="op">*</span> rate)</span>
-<span id="cb6-30"><a href="#cb6-30" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb6-31"><a href="#cb6-31" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> current_time</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</div>
-</section>
-</section>
-<section id="step-5-compartment-update" class="level3">
-<h3 class="anchored" data-anchor-id="step-5-compartment-update">Step 5: Compartment Update</h3>
-<p>After calculating the rate, we apply the infusion for <code>delta_seconds</code>:</p>
-<div id="411d7be5" class="cell" data-execution_count="7">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> update(A, lambdas, coefs, rate, dt):</span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""</span></span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="co">    Update compartment amounts after infusion at given rate for time dt.</span></span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="co">    </span></span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="co">    This is the discrete-time solution:</span></span>
-<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="co">    A(t+dt) = A(t)·exp(-λ·dt) + c·rate·(1 - exp(-λ·dt))</span></span>
-<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="co">    """</span></span>
-<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>    decay <span class="op">=</span> np.exp(<span class="op">-</span>lambdas <span class="op">*</span> dt)</span>
-<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> A <span class="op">*</span> decay <span class="op">+</span> coefs <span class="op">*</span> rate <span class="op">*</span> (<span class="dv">1</span> <span class="op">-</span> decay)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="co">    Update compartment amounts after infusion at given rate for time dt.</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="co">    </span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="co">    This is the discrete-time solution:</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="co">    A(t+dt) = A(t)·exp(-λ·dt) + c·rate·(1 - exp(-λ·dt))</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="co">    """</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    decay <span class="op">=</span> np.exp(<span class="op">-</span>lambdas <span class="op">*</span> dt)</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> A <span class="op">*</span> decay <span class="op">+</span> coefs <span class="op">*</span> rate <span class="op">*</span> (<span class="dv">1</span> <span class="op">-</span> decay)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>This formula is the closed form solution of the PKPD differential equations.</p>
 </section>
 </section>
-<section id="how-different-scenarios-are-handled" class="level2">
-<h2 class="anchored" data-anchor-id="how-different-scenarios-are-handled">How Different Scenarios Are Handled</h2>
-<section id="scenario-1-initial-bolus-from-zero-state" class="level3">
-<h3 class="anchored" data-anchor-id="scenario-1-initial-bolus-from-zero-state">Scenario 1: Initial Bolus (From Zero State)</h3>
-<p><strong>Situation</strong>: All compartments empty, target = 0.2 μg/L</p>
-<p><strong>Algorithm behavior</strong>: 1. <code>virtual = 0</code> (starting from zero) 2. <code>residual = 0.2 - 0 = 0.2</code> 3. <code>rate = 0.2 / udf[428] ≈ 0.4</code> μg/s 4. Peak occurs at 428s (unchanged, as predicted) 5. Infuse 0.4 μg/s for 10s, then rate = 0 6. Concentration rises over next 7 minutes to ≈0.2 μg/L</p>
-</section>
-<section id="scenario-2-target-increase-0.2-0.3-μgl" class="level3">
-<h3 class="anchored" data-anchor-id="scenario-2-target-increase-0.2-0.3-μgl">Scenario 2: Target Increase (0.2 → 0.3 μg/L)</h3>
-<p><strong>Situation</strong>: Compartments partially loaded, need higher target</p>
-<p><strong>Algorithm behavior</strong>: 1. <strong>Iteration 1</strong>: - Extrapolate to peak_time = 428s with rate = 0 - Predict concentration ≈ 0.19 μg/L (slight decay) - <code>residual = 0.3 - 0.19 = 0.11</code> - <code>rate = 0.11 / udf[428]</code> - Find new peak → say 180s (much earlier!)</p>
-<ol start="2" type="1">
-<li><strong>Iteration 2</strong>:
-<ul>
-<li>Extrapolate to 180s with rate = 0</li>
-<li>Different predicted concentration</li>
-<li>Recalculate rate</li>
-<li>Find new peak → say 165s</li>
-</ul></li>
-<li><strong>Convergence</strong> (typically 2-5 iterations):
-<ul>
-<li>Rate settles at value that produces exactly 0.3 μg/L at the (now known) peak time</li>
-<li>Effect site concentration rises to new target</li>
-</ul></li>
-</ol>
-</section>
-<section id="scenario-3-target-maintenance" class="level3">
-<h3 class="anchored" data-anchor-id="scenario-3-target-maintenance">Scenario 3: Target Maintenance</h3>
-<p><strong>Situation</strong>: At target, need to compensate for elimination</p>
-<p><strong>Algorithm behavior</strong>: 1. Small residual (elimination creates deficit) 2. Calculate low maintenance rate 3. Peak time relatively stable 4. Quick convergence (already near target) 5. Small rate just balances elimination</p>
-</section>
-<section id="scenario-4-target-decrease-0.3-0.1-μgl" class="level3">
-<h3 class="anchored" data-anchor-id="scenario-4-target-decrease-0.3-0.1-μgl">Scenario 4: Target Decrease (0.3 → 0.1 μg/L)</h3>
-<p><strong>Situation</strong>: Current concentration above new target</p>
-<p><strong>Algorithm behavior</strong>: 1. <code>residual = 0.1 - 0.3 = -0.2</code> (negative!) 2. <code>rate_candidate = -0.2 / udf[peak] &lt; 0</code> 3. <strong>Early exit</strong>: <code>rate = 0</code> (cannot remove drug) 4. No iteration needed 5. Natural elimination reduces concentration 6. When concentration falls below 0.1, algorithm resumes with positive rates</p>
-</section>
-</section>
-<section id="computational-efficiency" class="level2">
-<h2 class="anchored" data-anchor-id="computational-efficiency">Computational Efficiency</h2>
-<p>Notice the computational strategy:</p>
-<p><strong>Done once (pre-computation)</strong>: - Calculate eigenvalues: O(n³) for n×n matrix - Generate UDF array: ~500 iterations - Calculate coefficients: Simple arithmetic</p>
-<p><strong>Done every 10 seconds (real-time)</strong>: - Project state forward: Simple exponentials - Array lookups in UDF - 2-5 iterations to convergence - Each iteration: ~10 arithmetic operations</p>
-<p>The expensive linear algebra happens <strong>once</strong>. The real-time algorithm is just arithmetic and array access—fast enough to run on a 1990s microcontroller.</p>
-</section>
 <section id="visualizing-the-results" class="level2">
 <h2 class="anchored" data-anchor-id="visualizing-the-results">Visualizing the Results</h2>
-<div id="676f3dbe" class="cell" data-execution_count="8">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots()</span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>ax2 <span class="op">=</span> ax.twinx()</span>
-<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Target and achieved concentrations</span></span>
-<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>ax.plot(time, targets, label<span class="op">=</span><span class="st">"Target"</span>, linewidth<span class="op">=</span><span class="dv">2</span>, color<span class="op">=</span><span class="st">'red'</span>, linestyle<span class="op">=</span><span class="st">'--'</span>)</span>
-<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>ax.plot(time, analytic_ce, label<span class="op">=</span><span class="st">"Achieved Ce"</span>, linewidth<span class="op">=</span><span class="dv">2</span>, color<span class="op">=</span><span class="st">'blue'</span>)</span>
-<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="st">'Effect site concentration (µg/L)'</span>, color<span class="op">=</span><span class="st">'blue'</span>)</span>
-<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="st">'Time (seconds)'</span>)</span>
-<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Infusion rates</span></span>
-<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>ax2.plot(time, rates, label<span class="op">=</span><span class="st">"Infusion Rate"</span>, color<span class="op">=</span><span class="st">'black'</span>, alpha<span class="op">=</span><span class="fl">0.6</span>)</span>
-<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>ax2.set_ylabel(<span class="st">'Infusion rate (µg/s)'</span>, color<span class="op">=</span><span class="st">'black'</span>)</span>
-<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">"Gepts Sufentanil Effect Site TCI Simulation"</span>)</span>
-<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>ax.legend(loc<span class="op">=</span><span class="st">'upper left'</span>)</span>
-<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>ax2.legend(loc<span class="op">=</span><span class="st">'upper right'</span>)</span>
-<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="d346139a" class="cell" data-execution_count="7">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots()</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>ax2 <span class="op">=</span> ax.twinx()</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Target and achieved concentrations</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>ax.plot(time, targets, label<span class="op">=</span><span class="st">"Target"</span>, linewidth<span class="op">=</span><span class="dv">2</span>, color<span class="op">=</span><span class="st">'red'</span>, linestyle<span class="op">=</span><span class="st">'--'</span>)</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>ax.plot(time, analytic_ce, label<span class="op">=</span><span class="st">"Achieved Ce"</span>, linewidth<span class="op">=</span><span class="dv">2</span>, color<span class="op">=</span><span class="st">'blue'</span>)</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="st">'Effect site concentration (µg/L)'</span>, color<span class="op">=</span><span class="st">'blue'</span>)</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="st">'Time (seconds)'</span>)</span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Infusion rates</span></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>ax2.plot(time, rates, label<span class="op">=</span><span class="st">"Infusion Rate"</span>, color<span class="op">=</span><span class="st">'black'</span>, alpha<span class="op">=</span><span class="fl">0.6</span>)</span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>ax2.set_ylabel(<span class="st">'Infusion rate (µg/s)'</span>, color<span class="op">=</span><span class="st">'black'</span>)</span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">"Gepts Sufentanil Effect Site TCI Simulation"</span>)</span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>ax.legend(loc<span class="op">=</span><span class="st">'upper left'</span>)</span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>ax2.legend(loc<span class="op">=</span><span class="st">'upper right'</span>)</span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p><img src="Figure_2.png" class="img-fluid"></p>
 <p>The plot reveals:</p>
@@ -731,11 +658,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="acknowledgments" class="level2">
 <h2 class="anchored" data-anchor-id="acknowledgments">Acknowledgments</h2>
-<p>Immense gratitude to:</p>
+<p>I’d like to acknowledge:</p>
 <ul>
-<li><strong>Charles Minto</strong> for the exceptional mathematical derivation document</li>
+<li><strong>Charles Minto</strong> for the exceptional mathematical derivation document of the eigenvalues (Looking forward to the infusion coefficient derivation!)</li>
 <li><strong>Steven Shafer</strong> for creating STANPUMP and releasing it as open source</li>
-<li><strong>The Open TCI community</strong> for preserving and sharing this knowledge</li>
 </ul>
 
 
