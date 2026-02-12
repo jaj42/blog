@@ -97,7 +97,7 @@ udf = np.array(udfs[1])  # Extract effect site UDF
 ```
 
 The `calculate_lambdas()` function constructs the system matrix and computes its eigenvalues.
-Charles Minto recently wrote [a comprehensive document](https://bit.ly/4tthNSg) which explains exactly how the eigenvalues are calculated in the STANPUMP code, including some very cool plots to illustrate the PKPD eigenvalues graphically.
+Charles Minto recently wrote [a comprehensive document](https://www.dropbox.com/scl/fi/e959ikojg3p2helj4hx7z/uptoroots.pdf?rlkey=5io4ne4wqfpniko65lbe68nwx) which explains exactly how the eigenvalues are calculated in the STANPUMP code, including some very cool plots to illustrate the PKPD eigenvalues graphically.
 Since the time steps are in seconds, the PKPD model parameters are scaled from minutes to seconds to ease calculations.
 
 ### The Main Simulation Loop

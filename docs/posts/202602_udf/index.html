@@ -418,7 +418,7 @@ Figure&nbsp;1: TCI infusion based on a scaled UDF with a single initial bolus
 <section id="the-pharmacometric-model" class="level3">
 <h3 class="anchored" data-anchor-id="the-pharmacometric-model">The Pharmacometric Model</h3>
 <p>We will use the Gepts Sufentanil model again since it is convenient and has no covariates.</p>
-<div id="ee963b55" class="cell" data-execution_count="1">
+<div id="133a934d" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> tci</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -436,7 +436,7 @@ Figure&nbsp;1: TCI infusion based on a scaled UDF with a single initial bolus
 </section>
 <section id="convert-time-units-and-pre-compute-system-properties" class="level3">
 <h3 class="anchored" data-anchor-id="convert-time-units-and-pre-compute-system-properties">Convert Time Units and pre-compute System Properties</h3>
-<div id="311d5f73" class="cell" data-execution_count="2">
+<div id="7fe861ee" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Convert to seconds for 10-second update intervals</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>model_params <span class="op">=</span> gepts.per_seconds()</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>delta_seconds <span class="op">=</span> <span class="dv">10</span></span>
@@ -450,13 +450,13 @@ Figure&nbsp;1: TCI infusion based on a scaled UDF with a single initial bolus
 <span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>udf <span class="op">=</span> np.array(udfs[<span class="dv">1</span>])  <span class="co"># Extract effect site UDF</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<p>The <code>calculate_lambdas()</code> function constructs the system matrix and computes its eigenvalues. Charles Minto recently wrote <a href="https://bit.ly/4tthNSg">a comprehensive document</a> which explains exactly how the eigenvalues are calculated in the STANPUMP code, including some very cool plots to illustrate the PKPD eigenvalues graphically. Since the time steps are in seconds, the PKPD model parameters are scaled from minutes to seconds to ease calculations.</p>
+<p>The <code>calculate_lambdas()</code> function constructs the system matrix and computes its eigenvalues. Charles Minto recently wrote <a href="https://www.dropbox.com/scl/fi/e959ikojg3p2helj4hx7z/uptoroots.pdf?rlkey=5io4ne4wqfpniko65lbe68nwx">a comprehensive document</a> which explains exactly how the eigenvalues are calculated in the STANPUMP code, including some very cool plots to illustrate the PKPD eigenvalues graphically. Since the time steps are in seconds, the PKPD model parameters are scaled from minutes to seconds to ease calculations.</p>
 </section>
 <section id="the-main-simulation-loop" class="level3">
 <h3 class="anchored" data-anchor-id="the-main-simulation-loop">The Main Simulation Loop</h3>
 <p>The TCI algorithm runs every 10 seconds, recalculating the infusion rate based on the current target. The 10 seconds step is a convention introduced by STANPUMP but this is a setting that can be overrided.</p>
 <p>In this simulation, I set an intial effect site target at 0.2 μg/L. After 500 seconds it is increased to 0.3 μg/L and after 1000 seconds it is lowered to 0.1 μg/L.</p>
-<div id="4830eacd" class="cell" data-execution_count="3">
+<div id="81228dfa" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Initialize simulation state</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>Ce <span class="op">=</span> np.zeros(<span class="dv">4</span>)</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>time <span class="op">=</span> [<span class="dv">0</span>]</span>
@@ -505,7 +505,7 @@ Figure&nbsp;1: TCI infusion based on a scaled UDF with a single initial bolus
 </section>
 <section id="the-algorithm" class="level4">
 <h4 class="anchored" data-anchor-id="the-algorithm">The Algorithm</h4>
-<div id="78511c55" class="cell" data-execution_count="4">
+<div id="e9bdbab9" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> calculate_rate(Ce, current_target, lambdas, udf, coefs, </span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>                   peak_time, delta_seconds):</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""</span></span>
@@ -573,7 +573,7 @@ Figure&nbsp;1: TCI infusion based on a scaled UDF with a single initial bolus
 <section id="find-peak-function" class="level4">
 <h4 class="anchored" data-anchor-id="find-peak-function">Find Peak function</h4>
 <p>Find when effect site concentration peaks with given rate.</p>
-<div id="02e99197" class="cell" data-execution_count="5">
+<div id="b69a65ca" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> find_peak(current_time, rate, Ce, peak_time, lambdas, udf, delta_seconds):</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""</span></span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="co">    Find when effect site concentration peaks with given rate.</span></span>
@@ -610,7 +610,7 @@ Figure&nbsp;1: TCI infusion based on a scaled UDF with a single initial bolus
 <h3 class="anchored" data-anchor-id="compartment-update">Compartment Update</h3>
 <p>After calculating the rate, we need to run the model for <code>delta_seconds</code> to obtain our next effect site concentration.</p>
 <p>The expensive linear algebra happened only <strong>once</strong> in the beginning of the session. The real-time algorithm is just arithmetics and array access which was fast enough to run on a 1990s microcontroller.</p>
-<div id="50d6db06" class="cell" data-execution_count="6">
+<div id="1f628bbe" class="cell" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> model(A, lambdas, coefs, rate, dt):</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""</span></span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="co">    Update compartment amounts after infusion at given rate for time dt.</span></span>
@@ -626,7 +626,7 @@ Figure&nbsp;1: TCI infusion based on a scaled UDF with a single initial bolus
 </section>
 <section id="visualizing-the-results" class="level2">
 <h2 class="anchored" data-anchor-id="visualizing-the-results">Visualizing the Results</h2>
-<div id="e96b3cb6" class="cell" data-execution_count="7">
+<div id="80217ab8" class="cell" data-execution_count="7">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots()</span>
