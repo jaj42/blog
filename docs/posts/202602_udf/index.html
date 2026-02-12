@@ -371,16 +371,17 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>In my <a href="../202508_stanpump/index.html">previous blog post</a>, I took a deep dive into STANPUMP’s source code to understand the underlying logic for Target-Controlled Infusion (TCI) and reimplemented a minimal version in Python. However, we only glimpsed over the actual core algorithm which calculates the required infusion rates to achieve target concentrations.</p>
 <p>This post will show how the TCI algorithm works step by step, including initial bolus dosing, maintenance and target changes. The goal is to understand each step of the algorithm, an algorithm that runs every 10 seconds in operating rooms around the world.</p>
 <p>We will reuse Python code from the ministan repository: <a href="https://framagit.org/jaj/ministan/-/tree/main/python" class="uri">https://framagit.org/jaj/ministan/-/tree/main/python</a></p>
+<p>We will use effect site concentrations throughout but the same algorithm applies to plasma concentration targets, only the UDF changes.</p>
 </section>
 <section id="the-unit-disposition-function-udf" class="level2">
 <h2 class="anchored" data-anchor-id="the-unit-disposition-function-udf">The Unit Disposition Function (UDF)</h2>
 <p>The UDF is the key to TCI’s efficiency and elegance. It answers a simple question:</p>
 <blockquote class="blockquote">
-<p><em>What happens if I infuse 1 μg/s for 10 seconds, then stop?</em></p>
+<p><em>What happens if I infuse 1 unit/s for 10 seconds, then stop?</em></p>
 </blockquote>
 <p>The UDF is pre-calculated once at the start of the case using these steps:</p>
 <ol type="1">
-<li>Initialize: Start with empty compartments (all zeros)</li>
+<li>Initialize: Start with empty state (all zeros)</li>
 <li>Simulate a unit rate infusion: Run model with rate = 1 unit/s for 10s</li>
 <li>Stop and observe: Set rate = 0 and continue simulation</li>
 <li>Find peak: Record when effect site concentration reaches its maximum</li>
@@ -393,12 +394,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>If you want to achieve 0.3 μg/L effect site bolus at the peak, you can follow these steps:</p>
 <ul>
 <li>UDF shows 1 μg/s -&gt; 0.19 μg/L at peak</li>
-<li>Therefore you need 0.3 / 0.19 = 1.58 μg/s for 10 seconds</li>
-<li>This amount to a bolus of 15.7 μg over the first 10 seconds</li>
+<li>Therefore you need 0.3 / 0.19 = 1.58 μg/s</li>
+<li>This amounts to a bolus of 15.7 μg over 10 seconds</li>
 <li>Formula: <code>rate = target / udf[peak_time]</code></li>
 </ul>
 <p>This is the foundation of the TCI algorithm: <strong>scale the unit response to achieve any target</strong>.</p>
-<p>After the peak which occurs exactly at the target effett, the concentration decreases again as the drug is distributed and metabolized.</p>
+<p>After the peak, which occurs exactly at the target effect, the concentration decreases again as the drug is distributed and metabolized. The result of this simulation can be seen in <a href="#fig-bolus" class="quarto-xref">Figure&nbsp;1</a>.</p>
 <div id="fig-bolus" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-bolus-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
@@ -413,11 +414,11 @@ Figure&nbsp;1: TCI infusion based on a scaled UDF with a single initial bolus
 </section>
 <section id="implementing-the-tci-algorithm" class="level2">
 <h2 class="anchored" data-anchor-id="implementing-the-tci-algorithm">Implementing the TCI Algorithm</h2>
-<p>If you want to continue infusion after the initial bolus, an iterative algorithm is needed where the infusion rate is recalculated at every time step. Let’s go through the complete TCI algorithm, one step at a time.</p>
+<p>If you want to continue infusion after the initial bolus, an iterative algorithm is needed where the infusion rate is recalculated at every time step while taking into account existing state. Let’s go through the complete TCI algorithm, one step at a time.</p>
 <section id="the-pharmacometric-model" class="level3">
 <h3 class="anchored" data-anchor-id="the-pharmacometric-model">The Pharmacometric Model</h3>
-<p>We will use the Gepts Sufentanil model again since it is convenient. This code uses effect site concentrations but the same algorithm applies to plasma concentration targets.</p>
-<div id="05f59aaa" class="cell" data-execution_count="1">
+<p>We will use the Gepts Sufentanil model again since it is convenient and has no covariates.</p>
+<div id="ee963b55" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> tci</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -434,8 +435,8 @@ Figure&nbsp;1: TCI infusion based on a scaled UDF with a single initial bolus
 </div>
 </section>
 <section id="convert-time-units-and-pre-compute-system-properties" class="level3">
-<h3 class="anchored" data-anchor-id="convert-time-units-and-pre-compute-system-properties">Convert Time Units and Pre-compute System Properties</h3>
-<div id="57cdf616" class="cell" data-execution_count="2">
+<h3 class="anchored" data-anchor-id="convert-time-units-and-pre-compute-system-properties">Convert Time Units and pre-compute System Properties</h3>
+<div id="311d5f73" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Convert to seconds for 10-second update intervals</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>model_params <span class="op">=</span> gepts.per_seconds()</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>delta_seconds <span class="op">=</span> <span class="dv">10</span></span>
@@ -449,13 +450,13 @@ Figure&nbsp;1: TCI infusion based on a scaled UDF with a single initial bolus
 <span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>udf <span class="op">=</span> np.array(udfs[<span class="dv">1</span>])  <span class="co"># Extract effect site UDF</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<p>The <code>calculate_lambdas()</code> function constructs the system matrix and computes its eigenvalues. Charles Minto recently wrote <a href="https://www.linkedin.com/feed/update/urn:li:activity:7426118342811213824/">a comprehensive document</a> which explains exactly how the eigenvalues are calculated in the STANPUMP code. Since the time steps are in seconds, the PKPD model parameters are scaled from minutes to seconds to ease calculations.</p>
+<p>The <code>calculate_lambdas()</code> function constructs the system matrix and computes its eigenvalues. Charles Minto recently wrote <a href="https://bit.ly/4tthNSg">a comprehensive document</a> which explains exactly how the eigenvalues are calculated in the STANPUMP code, including some very cool plots to illustrate the PKPD eigenvalues graphically. Since the time steps are in seconds, the PKPD model parameters are scaled from minutes to seconds to ease calculations.</p>
 </section>
 <section id="the-main-simulation-loop" class="level3">
 <h3 class="anchored" data-anchor-id="the-main-simulation-loop">The Main Simulation Loop</h3>
-<p>The TCI algorithm runs every 10 seconds, recalculating the infusion rate based on the current target. These 10 seconds are a convention introduced by STANPUMP but this is a setting that can be modified.</p>
+<p>The TCI algorithm runs every 10 seconds, recalculating the infusion rate based on the current target. The 10 seconds step is a convention introduced by STANPUMP but this is a setting that can be overrided.</p>
 <p>In this simulation, I set an intial effect site target at 0.2 μg/L. After 500 seconds it is increased to 0.3 μg/L and after 1000 seconds it is lowered to 0.1 μg/L.</p>
-<div id="aae581a4" class="cell" data-execution_count="3">
+<div id="4830eacd" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Initialize simulation state</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>Ce <span class="op">=</span> np.zeros(<span class="dv">4</span>)</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>time <span class="op">=</span> [<span class="dv">0</span>]</span>
@@ -500,11 +501,11 @@ Figure&nbsp;1: TCI infusion based on a scaled UDF with a single initial bolus
 <p>This is where the magic happens. The goal is to find an infusion rate such that the peak effect site concentration equals the target.</p>
 <section id="why-iteration-is-necessary" class="level4">
 <h4 class="anchored" data-anchor-id="why-iteration-is-necessary">Why Iteration is Necessary</h4>
-<p><strong>Peak time is dynamic</strong>, it depends on current compartment state <strong>and</strong> infusion rate. After the initial infusion, some drug will be present in the system and the context sensitive peak time will be lower than the original peak time. Calculting infusion rate based on the original peak time will lead to overshoot. Therefore we need to find the rate and peak_time pair that satisfieds our target.</p>
+<p><strong>Peak time is dynamic</strong>, it depends on current compartment state and infusion rate. After the initial infusion, some drug will be present in the system and the context sensitive peak time will be lower than the original peak time. Calculating infusion rate based on the original peak time will lead to overshoot. Therefore we need to find the rate and peak_time pair that satisfies our target.</p>
 </section>
 <section id="the-algorithm" class="level4">
 <h4 class="anchored" data-anchor-id="the-algorithm">The Algorithm</h4>
-<div id="21e283b5" class="cell" data-execution_count="4">
+<div id="78511c55" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> calculate_rate(Ce, current_target, lambdas, udf, coefs, </span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>                   peak_time, delta_seconds):</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""</span></span>
@@ -572,7 +573,7 @@ Figure&nbsp;1: TCI infusion based on a scaled UDF with a single initial bolus
 <section id="find-peak-function" class="level4">
 <h4 class="anchored" data-anchor-id="find-peak-function">Find Peak function</h4>
 <p>Find when effect site concentration peaks with given rate.</p>
-<div id="9bfd45c4" class="cell" data-execution_count="5">
+<div id="02e99197" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> find_peak(current_time, rate, Ce, peak_time, lambdas, udf, delta_seconds):</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""</span></span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="co">    Find when effect site concentration peaks with given rate.</span></span>
@@ -608,8 +609,8 @@ Figure&nbsp;1: TCI infusion based on a scaled UDF with a single initial bolus
 <section id="compartment-update" class="level3">
 <h3 class="anchored" data-anchor-id="compartment-update">Compartment Update</h3>
 <p>After calculating the rate, we need to run the model for <code>delta_seconds</code> to obtain our next effect site concentration.</p>
-<p>The expensive linear algebra happened only <strong>once</strong> in the beginning of the session. The real-time algorithm is just arithmetic and array access which was fast enough to run on a 1990s microcontroller.</p>
-<div id="b005b5d7" class="cell" data-execution_count="6">
+<p>The expensive linear algebra happened only <strong>once</strong> in the beginning of the session. The real-time algorithm is just arithmetics and array access which was fast enough to run on a 1990s microcontroller.</p>
+<div id="50d6db06" class="cell" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> model(A, lambdas, coefs, rate, dt):</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""</span></span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="co">    Update compartment amounts after infusion at given rate for time dt.</span></span>
@@ -625,7 +626,7 @@ Figure&nbsp;1: TCI infusion based on a scaled UDF with a single initial bolus
 </section>
 <section id="visualizing-the-results" class="level2">
 <h2 class="anchored" data-anchor-id="visualizing-the-results">Visualizing the Results</h2>
-<div id="5d35511f" class="cell" data-execution_count="7">
+<div id="e96b3cb6" class="cell" data-execution_count="7">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots()</span>
@@ -646,8 +647,17 @@ Figure&nbsp;1: TCI infusion based on a scaled UDF with a single initial bolus
 <span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>ax2.legend(loc<span class="op">=</span><span class="st">'upper right'</span>)</span>
 <span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<p><img src="Figure_2.png" class="img-fluid"></p>
-<p>The plot reveals:</p>
+<div id="fig-case" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-case-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="Figure_2.png" class="img-fluid figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-case-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;2: Full TCI infusion scheme with target changes and rates calculated by the iterative algorithm.
+</figcaption>
+</figure>
+</div>
+<p><a href="#fig-case" class="quarto-xref">Figure&nbsp;2</a> reveals:</p>
 <ol type="1">
 <li><strong>Initial bolus</strong>: High rate spike to rapidly achieve 0.2 μg/L</li>
 <li><strong>Plateau phase</strong>: Low maintenance rate compensates for elimination</li>
@@ -660,8 +670,13 @@ Figure&nbsp;1: TCI infusion based on a scaled UDF with a single initial bolus
 <h2 class="anchored" data-anchor-id="acknowledgments">Acknowledgments</h2>
 <p>I’d like to acknowledge:</p>
 <ul>
-<li><strong>Charles Minto</strong> for the exceptional mathematical derivation document of the eigenvalues (Looking forward to the infusion coefficient derivation!)</li>
 <li><strong>Steven Shafer</strong> for creating STANPUMP and releasing it as open source</li>
+<li><strong>Charles Minto</strong> for the exceptional mathematical derivation document of the eigenvalues (Looking forward to the infusion coefficient derivation!) as well as the other previous LinkedIn posts which everybody interested in TCI should check out.
+<ul>
+<li><a href="https://www.linkedin.com/posts/charlesminto_stanpump-tci-pkpd-activity-7366239144836071424-1RZl" class="uri">https://www.linkedin.com/posts/charlesminto_stanpump-tci-pkpd-activity-7366239144836071424-1RZl</a></li>
+<li><a href="https://www.linkedin.com/posts/charlesminto_pkpdtools-pkpd-tci-activity-7367709588365725696-WS-w" class="uri">https://www.linkedin.com/posts/charlesminto_pkpdtools-pkpd-tci-activity-7367709588365725696-WS-w</a></li>
+<li><a href="https://www.linkedin.com/posts/charlesminto_stanford-pharmacokinetics-tci-activity-7426118342811213824-xf2Z" class="uri">https://www.linkedin.com/posts/charlesminto_stanford-pharmacokinetics-tci-activity-7426118342811213824-xf2Z</a></li>
+</ul></li>
 </ul>
 
 
@@ -671,12 +686,12 @@ Figure&nbsp;1: TCI infusion based on a scaled UDF with a single initial bolus
   author = {Joachim, Jona},
   title = {Unit {Disposition} {Functions} and the {TCI} Algorithm},
   date = {2026-02-11},
-  url = {https://jaj42.github.io/blog/posts/202602_udf/},
+  url = {https://jaj42.github.io/blog/posts/202602_udf/index.html},
   langid = {en}
 }
 </code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre><div class="quarto-appendix-secondary-label">For attribution, please cite this work as:</div><div id="ref-joachim2026" class="csl-entry quarto-appendix-citeas" role="listitem">
 Joachim, Jona. 2026. <span>“Unit Disposition Functions and the TCI
-Algorithm.”</span> February 11, 2026. <a href="https://jaj42.github.io/blog/posts/202602_udf/">https://jaj42.github.io/blog/posts/202602_udf/</a>.
+Algorithm.”</span> February 11, 2026. <a href="https://jaj42.github.io/blog/posts/202602_udf/index.html">https://jaj42.github.io/blog/posts/202602_udf/index.html</a>.
 </div></div></section></div></main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
   window.document.addEventListener("DOMContentLoaded", function (event) {

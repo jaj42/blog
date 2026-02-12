@@ -691,7 +691,7 @@ c_{e1} &amp; = \frac{1}{(\lambda_1 - k_{e0}) \cdot V_c}
 <h2 class="anchored" data-anchor-id="reimplementation-in-python">Reimplementation in Python</h2>
 <p>STANPUMP represents a remarkable combination of deep TCI algorithm knowledge and programming expertise. The authors derived mathematical solutions themselves to optimize performance and employed coding techniques that enabled real-time execution on very basic hardware. With over 10 years of clinical use, the software’s algorithms are thoroughly proven in practice. To experiment with the code and test it with my own models, I decided to reimplement it in Python. I began with a <a href="https://framagit.org/jaj/ministan/-/blob/main/python/ministan.py">1:1 translation</a> of the C code, then gradually modernized sections using contemporary approaches like array programming with NumPy<span class="citation" data-cites="harris2020array"><sup><a href="#ref-harris2020array" role="doc-biblioref">5</a></sup></span>.</p>
 <p>For example, the calculation of the eigenvalues is straightforward with NumPy:</p>
-<div id="e8a8d1ba" class="cell" data-execution_count="1">
+<div id="7107d715" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>A <span class="op">=</span> [</span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    [<span class="op">-</span>(k10 <span class="op">+</span> k12 <span class="op">+</span> k13), k21, k31],</span>
@@ -751,12 +751,12 @@ c_{e1} &amp; = \frac{1}{(\lambda_1 - k_{e0}) \cdot V_c}
   author = {Joachim, Jona},
   title = {Deep Dive into {STANPUMP}},
   date = {2025-08-24},
-  url = {https://jaj42.github.io/blog/posts/202508_stanpump/},
+  url = {https://jaj42.github.io/blog/posts/202508_stanpump/index.html},
   langid = {en}
 }
 </code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre><div class="quarto-appendix-secondary-label">For attribution, please cite this work as:</div><div id="ref-joachim2025" class="csl-entry quarto-appendix-citeas" role="listitem">
 <div class="">Joachim J. Deep dive into STANPUMP [Internet].
-2025. Available from: <a href="https://jaj42.github.io/blog/posts/202508_stanpump/">https://jaj42.github.io/blog/posts/202508_stanpump/</a></div>
+2025. Available from: <a href="https://jaj42.github.io/blog/posts/202508_stanpump/index.html">https://jaj42.github.io/blog/posts/202508_stanpump/index.html</a></div>
 </div></div></section></div></main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
   window.document.addEventListener("DOMContentLoaded", function (event) {

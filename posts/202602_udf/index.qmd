@@ -3,11 +3,8 @@ title: Unit Disposition Functions and the TCI algorithm
 author: "Jona Joachim"
 date: "2026-02-11"
 categories: [pharmacometrics, tci]
-#image: "Screenshot_20250819_135400.png"
-#bibliography: references.bib
-#csl: british-journal-of-anaesthesia.csl
 citation:
-  url: https://jaj42.github.io/blog/posts/202602_udf/
+  url: https://jaj42.github.io/blog/posts/202602_udf/index.html
 ---
 
 ## STANPUMP again
@@ -19,15 +16,17 @@ The goal is to understand each step of the algorithm, an algorithm that runs eve
 
 We will reuse Python code from the ministan repository: <https://framagit.org/jaj/ministan/-/tree/main/python>
 
+We will use effect site concentrations throughout but the same algorithm applies to plasma concentration targets, only the UDF changes.
+
 ## The Unit Disposition Function (UDF)
 
 The UDF is the key to TCI's efficiency and elegance. It answers a simple question:
 
-> *What happens if I infuse 1 μg/s for 10 seconds, then stop?*
+> *What happens if I infuse 1 unit/s for 10 seconds, then stop?*
 
 The UDF is pre-calculated once at the start of the case using these steps:
 
-1. Initialize: Start with empty compartments (all zeros)
+1. Initialize: Start with empty state (all zeros)
 2. Simulate a unit rate infusion: Run model with rate = 1 unit/s for 10s
 3. Stop and observe: Set rate = 0 and continue simulation
 4. Find peak: Record when effect site concentration reaches its maximum
@@ -43,24 +42,24 @@ Because the pharmacokinetic system is **linear**, the UDF enables elegant scalin
 If you want to achieve 0.3 μg/L effect site bolus at the peak, you can follow these steps:
 
 - UDF shows 1 μg/s -> 0.19 μg/L at peak
-- Therefore you need 0.3 / 0.19 = 1.58 μg/s for 10 seconds
-- This amount to a bolus of 15.7 μg over the first 10 seconds
+- Therefore you need 0.3 / 0.19 = 1.58 μg/s
+- This amounts to a bolus of 15.7 μg over 10 seconds
 - Formula: `rate = target / udf[peak_time]`
 
 This is the foundation of the TCI algorithm: **scale the unit response to achieve any target**.
 
-After the peak which occurs exactly at the target effett, the concentration decreases again as the drug  is distributed and metabolized.
+After the peak, which occurs exactly at the target effect, the concentration decreases again as the drug is distributed and metabolized. The result of this simulation can be seen in @fig-bolus.
 
 ![TCI infusion based on a scaled UDF with a single initial bolus](Figure_1.png){#fig-bolus}
 
 ## Implementing the TCI Algorithm
 
-If you want to continue infusion after the initial bolus, an iterative algorithm is needed where the infusion rate is recalculated at every time step.
+If you want to continue infusion after the initial bolus, an iterative algorithm is needed where the infusion rate is recalculated at every time step while taking into account existing state.
 Let's go through the complete TCI algorithm, one step at a time.
 
 ### The Pharmacometric Model
 
-We will use the Gepts Sufentanil model again since it is convenient. This code uses effect site concentrations but the same algorithm applies to plasma concentration targets.
+We will use the Gepts Sufentanil model again since it is convenient and has no covariates.
 
 ```{python}
 #| eval: false
@@ -79,7 +78,7 @@ gepts = tci.Parameters(
 )
 ```
 
-### Convert Time Units and Pre-compute System Properties
+### Convert Time Units and pre-compute System Properties
 
 ```{python}
 #| eval: false
@@ -98,12 +97,12 @@ udf = np.array(udfs[1])  # Extract effect site UDF
 ```
 
 The `calculate_lambdas()` function constructs the system matrix and computes its eigenvalues.
-Charles Minto recently wrote [a comprehensive document](https://www.linkedin.com/feed/update/urn:li:activity:7426118342811213824/) which explains exactly how the eigenvalues are calculated in the STANPUMP code.
+Charles Minto recently wrote [a comprehensive document](https://bit.ly/4tthNSg) which explains exactly how the eigenvalues are calculated in the STANPUMP code, including some very cool plots to illustrate the PKPD eigenvalues graphically.
 Since the time steps are in seconds, the PKPD model parameters are scaled from minutes to seconds to ease calculations.
 
 ### The Main Simulation Loop
 
-The TCI algorithm runs every 10 seconds, recalculating the infusion rate based on the current target. These 10 seconds are a convention introduced by STANPUMP but this is a setting that can be modified.
+The TCI algorithm runs every 10 seconds, recalculating the infusion rate based on the current target. The 10 seconds step is a convention introduced by STANPUMP but this is a setting that can be overrided.
 
 In this simulation, I set an intial effect site target at 0.2 μg/L. After 500 seconds it is increased to 0.3 μg/L and after 1000 seconds it is lowered to 0.1 μg/L.
 
@@ -154,7 +153,7 @@ This is where the magic happens. The goal is to find an infusion rate such that 
 
 #### Why Iteration is Necessary
 
-**Peak time is dynamic**, it depends on current compartment state **and** infusion rate. After the initial infusion, some drug will be present in the system and the context sensitive peak time will be lower than the original peak time. Calculting infusion rate based on the original peak time will lead to overshoot. Therefore we need to find the rate and peak_time pair that satisfieds our target.
+**Peak time is dynamic**, it depends on current compartment state and infusion rate. After the initial infusion, some drug will be present in the system and the context sensitive peak time will be lower than the original peak time. Calculating infusion rate based on the original peak time will lead to overshoot. Therefore we need to find the rate and peak_time pair that satisfies our target.
 
 #### The Algorithm
 
@@ -265,7 +264,7 @@ def find_peak(current_time, rate, Ce, peak_time, lambdas, udf, delta_seconds):
 
 After calculating the rate, we need to run the model for `delta_seconds` to obtain our next effect site concentration.
 
-The expensive linear algebra happened only **once** in the beginning of the session. The real-time algorithm is just arithmetic and array access which was fast enough to run on a 1990s microcontroller.
+The expensive linear algebra happened only **once** in the beginning of the session. The real-time algorithm is just arithmetics and array access which was fast enough to run on a 1990s microcontroller.
 
 ```{python}
 #| eval: false
@@ -307,9 +306,9 @@ ax2.legend(loc='upper right')
 plt.show()
 ```
 
-![](Figure_2.png)
+![Full TCI infusion scheme with target changes and rates calculated by the iterative algorithm.](Figure_2.png){#fig-case}
 
-The plot reveals:
+@fig-case reveals:
 
 1. **Initial bolus**: High rate spike to rapidly achieve 0.2 μg/L
 2. **Plateau phase**: Low maintenance rate compensates for elimination
@@ -321,5 +320,8 @@ The plot reveals:
 
 I'd like to acknowledge:
 
-- **Charles Minto** for the exceptional mathematical derivation document of the eigenvalues (Looking forward to the infusion coefficient derivation!)
 - **Steven Shafer** for creating STANPUMP and releasing it as open source
+- **Charles Minto** for the exceptional mathematical derivation document of the eigenvalues (Looking forward to the infusion coefficient derivation!) as well as the other previous LinkedIn posts which everybody interested in TCI should check out.
+    - <https://www.linkedin.com/posts/charlesminto_stanpump-tci-pkpd-activity-7366239144836071424-1RZl>
+    - <https://www.linkedin.com/posts/charlesminto_pkpdtools-pkpd-tci-activity-7367709588365725696-WS-w>
+    - <https://www.linkedin.com/posts/charlesminto_stanford-pharmacokinetics-tci-activity-7426118342811213824-xf2Z>

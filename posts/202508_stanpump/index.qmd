@@ -7,7 +7,7 @@ image: "Screenshot_20250819_135400.png"
 bibliography: references.bib
 csl: british-journal-of-anaesthesia.csl
 citation:
-  url: https://jaj42.github.io/blog/posts/202508_stanpump/
+  url: https://jaj42.github.io/blog/posts/202508_stanpump/index.html
 ---
 
 ## Pharmacometrics, TCI and STANPUMP
