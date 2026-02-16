@@ -43,7 +43,7 @@ If you want to achieve 0.3 μg/L effect site bolus at the peak, you can follow t
 
 - UDF shows 1 μg/s -> 0.19 μg/L at peak
 - Therefore you need 0.3 / 0.19 = 1.58 μg/s
-- This amounts to a bolus of 15.7 μg over 10 seconds
+- This amounts to a bolus of 15.8 μg over 10 seconds
 - Formula: `rate = target / udf[peak_time]`
 
 This is the foundation of the TCI algorithm: **scale the unit response to achieve any target**.
