@@ -9,8 +9,1009 @@
 <link>https://jaj42.github.io/blog/</link>
 <atom:link href="https://jaj42.github.io/blog/index.xml" rel="self" type="application/rss+xml"/>
 <description>Things I want to share</description>
-<generator>quarto-1.8.26</generator>
-<lastBuildDate>Tue, 10 Feb 2026 23:00:00 GMT</lastBuildDate>
+<generator>quarto-1.8.27</generator>
+<lastBuildDate>Sun, 15 Feb 2026 23:00:00 GMT</lastBuildDate>
+<item>
+  <title>TCI - caught in the inner loop</title>
+  <dc:creator>Jona Joachim</dc:creator>
+  <link>https://jaj42.github.io/blog/posts/202602_moderntci/</link>
+  <description><![CDATA[ 
+
+
+
+
+
+
+<section id="more-tales-from-the-unit-disposition-function" class="level2">
+<h2 class="anchored" data-anchor-id="more-tales-from-the-unit-disposition-function">More tales from the Unit Disposition Function</h2>
+<p>The unit disposition function (UDF), as explained in our <a href="../202602_udf/index.html">previous blog post</a>, shows the PKPD system response to a unit infusion. This response is an important characteristic of any model and is called the <strong>step response</strong> in engineering and control theory.</p>
+<p>In order to calculate it, we use the model equation for which STANPUMP includes closed form solutions. What is particular about these formulas is that they cannot be established for arbitrary time varying infusion profiles since the equations become intractable<span class="citation" data-cites="shafer_algorithms_1992"><sup>1</sup></span>. Instead, these formulas are only valid for constant infusion rate. Despite this limitation, the formulas remain useful due to the <strong>superposition principle</strong> which is an important property that emerges from the fact that the models are linear. Thanks to the superposition principle it is possible to handle infusion rate changes by switching to a new instance of the formula with the new infusion rate and which has its initial state copied over from the previous infusion. Rate changes introduce boundaries and the formula is valid from one boundary to the other. It is thus possible to obtain smooth model responses with infinite precision while advancing from one rate boundary to the other. For this reason, the formulas are called advancers or ADVAN in the NONMEM community and solutions are generally available for most common PK models<span class="citation" data-cites="abuhelwa_advan-style_2015"><sup>2</sup></span>. In mathematics, the formulas would be called state transition functions.</p>
+<p>This means that, while STANPUMP has decided to precalculate the UDF at discrete intervals of 1 second for CPU efficiency, we are not bound to this decision and we can use a smooth analytic UDF with infinite precision.</p>
+<p>Below is the Python implementation of a continuous UDF with unit infusion up to 10 seconds and zero infusion afterwards.</p>
+<div id="6a00283c" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">def</span> udf_continuous(</span>
+<span id="cb1-2">    lambdas: NDArray[np.float64],</span>
+<span id="cb1-3">    coefs: NDArray[np.float64],</span>
+<span id="cb1-4">    delta_seconds: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span>,</span>
+<span id="cb1-5">):</span>
+<span id="cb1-6">    <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">def</span> model(A: NDArray[np.float64], rate: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span>, t: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span>):</span>
+<span id="cb1-7">        ls <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.exp(<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span>lambdas <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> t)</span>
+<span id="cb1-8">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span> A <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> ls <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> coefs <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> rate <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> (<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> ls)</span>
+<span id="cb1-9"></span>
+<span id="cb1-10">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Pre-compute the state at boundary values</span></span>
+<span id="cb1-11">    state_at_zero <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.zeros(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">4</span>)</span>
+<span id="cb1-12">    state_at_cutoff <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> model(state_at_zero, rate<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, t<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>delta_seconds)</span>
+<span id="cb1-13"></span>
+<span id="cb1-14">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">@np.vectorize</span></span>
+<span id="cb1-15">    <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">def</span> piecewise(t: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span>):</span>
+<span id="cb1-16">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> t <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&lt;</span> delta_seconds:</span>
+<span id="cb1-17">            res <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> model(state_at_zero, rate<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, t<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>t)</span>
+<span id="cb1-18">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">else</span>:</span>
+<span id="cb1-19">            res <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> model(state_at_cutoff, rate<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>, t<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>t <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> delta_seconds)</span>
+<span id="cb1-20">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span> np.<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">sum</span>(res)</span>
+<span id="cb1-21"></span>
+<span id="cb1-22">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span> piecewise</span></code></pre></div></div>
+</div>
+<p>Now this code bears some complexity and we will go over it step by step. First of all, there are two function defined inside of the function. These are called closures and they can share state with the parent function. The parent actually returns one of these closures as its result. This means that this function is a <em>factory</em> for creating a UDF which includes all the necessary parameters and depends only on time. The <code>@np.vectorize</code> function decoration is a neat feature which makes it possible to use the function not only with a single value of time but apply it directly to a list or vector of time values and obtain a list of effect site concentrations corresponding to the time values as seen below:</p>
+<div id="0068bf22" class="cell" data-execution_count="2">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1">my_udf <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> udf_continuous(lambdas, coefs.e_coef, delta_seconds)</span>
+<span id="cb2-2"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(my_udf([<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">5</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">10</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">15</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">20</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">50</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">100</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">200</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">500</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1000</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">10000</span>]))</span>
+<span id="cb2-3">[<span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.</span>         <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.00161781</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.00641626</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.0126963</span>  <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.01881552</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.05233268</span></span>
+<span id="cb2-4"> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.09734208</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.15557019</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.19195808</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.13101536</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.01181284</span>]</span></code></pre></div></div>
+</div>
+<p>The model function contains the actual closed form solution of the three compartment model with effect site concentration. This function will be called either with a zero state and unit infusion when a value between 0 and 10 seconds is asked or with zero infusion and a state corresponding to the end of the 10 second infusion if a value is asked beyond the 10 seconds boundary. The function is thus <strong>piecewise</strong> defined with boundaries corresponding to rate changes.</p>
+<p>Below are two graphs comparing the discrete and continuous UDF:</p>
+<div id="fig-contudf-far" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-contudf-far-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="https://jaj42.github.io/blog/posts/202602_moderntci/Figure_1.png" class="img-fluid figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-contudf-far-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;1: Superposition of the discrete UDF with the continuous UDF
+</figcaption>
+</figure>
+</div>
+<div id="fig-contudf-close" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-contudf-close-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="https://jaj42.github.io/blog/posts/202602_moderntci/Figure_2.png" class="img-fluid figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-contudf-close-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;2: Zoom in on the initial part of the UDF where we see that the discrete UDF is a sub-sampling at every second
+</figcaption>
+</figure>
+</div>
+<p>For the Gepts model, STANPUMP calculated a peak time of 428 seconds. Using the continuous UDF, we can calculate it to be at 427.99173072102536 seconds.</p>
+<p>Now this precision comes at a price. If we consider the Gepts model with the infusion scheme presented in the previous post with three target changes, the original code takes on average 3.19 seconds on my laptop. With the continuous UDF it takes 16.21 seconds on average. This is a real hit on performance and makes it unusable for TCI. But maybe there is something we can do about that.</p>
+</section>
+<section id="fixed-point-iteration" class="level2">
+<h2 class="anchored" data-anchor-id="fixed-point-iteration">Fixed Point iteration</h2>
+<p>Let’s take a closer look at the main inner loop optimization for effect site TCI. The loop starts with <code>while not ok_condition:</code> and loops until it found parameters which yield a Ce close enough to the target value at the end of the 10 second frame. It jointly optimizes the context sensitive peak time <code>peak_time_tmp</code> and infusion rate <code>rate_candidate</code>. It starts with initial values, checks for the terminating condition. If the condition is not met, it loops and takes as initial values the ones obtained from the previous run. It returns when values have converged and are no longer changing.</p>
+<div id="2039f6bf" class="cell" data-execution_count="3">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Set target</span></span>
+<span id="cb3-2"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> t <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&lt;=</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">500</span>:</span>
+<span id="cb3-3">    current_target <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.2</span></span>
+<span id="cb3-4"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">elif</span> t <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&lt;=</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1000</span>:</span>
+<span id="cb3-5">    current_target <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.3</span></span>
+<span id="cb3-6"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">else</span>:</span>
+<span id="cb3-7">    current_target <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.1</span></span>
+<span id="cb3-8">targets.append(current_target)</span>
+<span id="cb3-9"></span>
+<span id="cb3-10"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Calculate new rate</span></span>
+<span id="cb3-11">ok_condition <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">False</span></span>
+<span id="cb3-12">peak_time_tmp <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> peak_time</span>
+<span id="cb3-13">rate_candidate <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span></span>
+<span id="cb3-14"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">while</span> <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">not</span> ok_condition:</span>
+<span id="cb3-15">    virtual <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> tci.virtual_model(Ae, peak_time_tmp, peak_time, lambdas, <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb3-16">    residual <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> current_target <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> virtual</span>
+<span id="cb3-17">    rate_candidate <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> residual <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> udf(peak_time_tmp)</span>
+<span id="cb3-18">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> rate_candidate <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&lt;=</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>:</span>
+<span id="cb3-19">        rate_candidate <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span></span>
+<span id="cb3-20">        ok_condition <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span></span>
+<span id="cb3-21">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">continue</span></span>
+<span id="cb3-22">    peak_time_tmp <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> find_peak(</span>
+<span id="cb3-23">        peak_time_tmp,</span>
+<span id="cb3-24">        rate_candidate,</span>
+<span id="cb3-25">        Ae,</span>
+<span id="cb3-26">        peak_time,</span>
+<span id="cb3-27">        lambdas,</span>
+<span id="cb3-28">        udf,</span>
+<span id="cb3-29">        delta_seconds,</span>
+<span id="cb3-30">    )</span>
+<span id="cb3-31">    virtual <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> tci.virtual_model(Ae, peak_time_tmp, peak_time, lambdas, <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb3-32">    predicted_ce <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> virtual <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> udf(peak_time_tmp) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> rate_candidate</span>
+<span id="cb3-33">    ok_condition <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> (</span>
+<span id="cb3-34">        np.<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">abs</span>(predicted_ce <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> current_target) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&lt;=</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1e-7</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> current_target</span>
+<span id="cb3-35">    )  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># STANPUMP cutoff</span></span>
+<span id="cb3-36">rate <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> rate_candidate</span>
+<span id="cb3-37">rates.append(rate)</span></code></pre></div></div>
+</div>
+<p>This algorithm is called fixed point iteration. It is looking for fixed points of a function. Fixed points of a function obey the equality</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0Af(x_%7B%5Ctext%7Bfix%7D%7D)%20=%20x_%7B%5Ctext%7Bfix%7D%7D%0A"></p>
+<p>We try to find the right <img src="https://latex.codecogs.com/png.latex?x"> so that <img src="https://latex.codecogs.com/png.latex?f(x)"> returns <img src="https://latex.codecogs.com/png.latex?x">. In our case, we have two variables <code>peak_time_tmp</code> and <code>rate_candidate</code> so we can either define <img src="https://latex.codecogs.com/png.latex?x"> to be a 2-element vector or write <img src="https://latex.codecogs.com/png.latex?f(x,%20y)%20=%20(x,%20y)">. If you ask AI to analyze the algorithm, I might tell you that the particular variant used by STANPUMP to solve the fixed point problem is called the Gauss–Seidel method (but don’t quote me on this).</p>
+<p>There is a key difference however in the STANPUMP algorithm when compared to the classic fixed point iteration problem. The fixed point condition is <img src="https://latex.codecogs.com/png.latex?f(x)%20=%20x"> whereas STANPUMP uses this result to calculate the Ce and sets the condition on the Ce being equal to the target Ce, rather than then peak time and rate.</p>
+<p>However, we might still get away with our standard fixed point algorithm. Indeed, <code>predicted_ce</code> is completely determined by <code>peak_time_tmp</code> and <code>rate_candidate</code> so if we solve for these two, we automatically solve <code>predicted_ce</code>.</p>
+<p>Below is the function definition for <img src="https://latex.codecogs.com/png.latex?f">, called <code>peak_to_peak</code>.</p>
+<div id="669c8478" class="cell" data-execution_count="4">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">def</span> peak_to_peak(state, Ae, current_target, udf, peak_time, lambdas, delta_seconds):</span>
+<span id="cb4-2">    rate_candidate, peak_time_tmp <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> state</span>
+<span id="cb4-3">    virtual <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> tci.virtual_model(Ae, peak_time_tmp, peak_time, lambdas, <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb4-4">    residual <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> current_target <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> virtual</span>
+<span id="cb4-5">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Handle target decrease</span></span>
+<span id="cb4-6">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> residual <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&lt;=</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>:</span>
+<span id="cb4-7">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span> np.array([<span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.0</span>, <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span>(peak_time_tmp)])</span>
+<span id="cb4-8">    rate_candidate <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> residual <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> udf(peak_time_tmp)</span>
+<span id="cb4-9">    peak_time_tmp <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> find_peak(</span>
+<span id="cb4-10">        peak_time_tmp,</span>
+<span id="cb4-11">        rate_candidate,</span>
+<span id="cb4-12">        Ae,</span>
+<span id="cb4-13">        peak_time,</span>
+<span id="cb4-14">        lambdas,</span>
+<span id="cb4-15">        udf,</span>
+<span id="cb4-16">        delta_seconds,</span>
+<span id="cb4-17">    )</span>
+<span id="cb4-18">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span> np.array([rate_candidate, peak_time_tmp])</span></code></pre></div></div>
+</div>
+<p>Once we defined it, we can use the <code>fixed_point</code> function from the scipy<span class="citation" data-cites="2020SciPy-NMeth"><sup>3</sup></span> optimize library. It will return rate and peak time but we discard the latter one because we only need rate.</p>
+<div id="c5212356" class="cell" data-execution_count="5">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> scipy.optimize <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> fixed_point</span>
+<span id="cb5-2"></span>
+<span id="cb5-3"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> t <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&lt;=</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">500</span>:</span>
+<span id="cb5-4">    current_target <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.2</span></span>
+<span id="cb5-5"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">elif</span> t <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&lt;=</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1000</span>:</span>
+<span id="cb5-6">    current_target <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.3</span></span>
+<span id="cb5-7"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">else</span>:</span>
+<span id="cb5-8">    current_target <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.1</span></span>
+<span id="cb5-9">targets.append(current_target)</span>
+<span id="cb5-10"></span>
+<span id="cb5-11">rate, _ <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> fixed_point(</span>
+<span id="cb5-12">    peak_to_peak,</span>
+<span id="cb5-13">    (<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>, peak_time),</span>
+<span id="cb5-14">    args<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>(Ae, current_target, udf, peak_time, lambdas, delta_seconds),</span>
+<span id="cb5-15">)</span>
+<span id="cb5-16"></span>
+<span id="cb5-17">rates.append(rate)</span></code></pre></div></div>
+</div>
+<p>If we look at the <code>peak_to_peak</code> function, we see something very interesting. <code>rate_candidate</code> is passed as an argument to the function but it is never used in the calculation. It is overwritten by the line <code>rate_candidate = residual / udf(peak_time_tmp)</code> without having had any effect on the calculation. Could it be that it is not needed at all? That the only thing we actually need to optimize in the peak time?</p>
+<section id="univariate-fixed-point-iteration" class="level3">
+<h3 class="anchored" data-anchor-id="univariate-fixed-point-iteration">Univariate fixed point iteration</h3>
+<div id="48eed902" class="cell" data-execution_count="6">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">def</span> peak_to_peak(state, Ae, current_target, udf, peak_time, lambdas, delta_seconds):</span>
+<span id="cb6-2">    peak_time_tmp <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> state.item()</span>
+<span id="cb6-3">    virtual <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> tci.virtual_model(Ae, peak_time_tmp, peak_time, lambdas, <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb6-4">    residual <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> current_target <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> virtual</span>
+<span id="cb6-5">    rate_candidate <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> residual <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> udf(peak_time_tmp)</span>
+<span id="cb6-6">    peak_time_tmp <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> find_peak(</span>
+<span id="cb6-7">        peak_time_tmp,</span>
+<span id="cb6-8">        rate_candidate,</span>
+<span id="cb6-9">        Ae,</span>
+<span id="cb6-10">        peak_time,</span>
+<span id="cb6-11">        lambdas,</span>
+<span id="cb6-12">        udf,</span>
+<span id="cb6-13">        delta_seconds,</span>
+<span id="cb6-14">    )</span>
+<span id="cb6-15">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span> np.array([peak_time_tmp])</span>
+<span id="cb6-16"></span>
+<span id="cb6-17">peak_solution <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> fixed_point(</span>
+<span id="cb6-18">    peak_to_peak, </span>
+<span id="cb6-19">    x0<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>[peak_time_max],</span>
+<span id="cb6-20">)</span>
+<span id="cb6-21"></span>
+<span id="cb6-22">peak_final <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> peak_solution.item()</span>
+<span id="cb6-23"></span>
+<span id="cb6-24"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Calculate final rate from converged peak</span></span>
+<span id="cb6-25">virtual <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> tci.virtual_model(Ae, peak_final, peak_time, lambdas, <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb6-26">rate<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> (current_target <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> virtual) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> udf(peak_final)</span>
+<span id="cb6-27">rate <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">max</span>(rate, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>) </span>
+<span id="cb6-28">rates.append(rate)</span></code></pre></div></div>
+</div>
+<p>The above code is a rewrite of the <code>peak_to_peak</code> function with a single argument, namely <code>peak_time_tmp</code>. Infusion rate is not needed at all during the optimization. We need to add some additional code after we obtain the result because we now get the peak time and we need to calculate the actual corresponding infusion rate.</p>
+<p>If we run this code on the same laptop, it should be faster, right? We really reduced the number of calculations required in the inner loop, removing the calculation of Ce and rate altogether. The disappointment is great: 25.70 seconds on average. But wait, the <code>fixed_point</code> function has a tolerance parameter <code>xtol</code>. Its default value is 1e-08. So we calculate peak time with a precision of 1e-08 seconds. STANPUMP has peak time precision of 1 second.</p>
+<p>Let’s set <code>xtol = 0.1 # seconds</code>. Now we are getting somewhere, mean execution time is down to 1.66 seconds!</p>
+</section>
+<section id="cobweb-plots" class="level3">
+<h3 class="anchored" data-anchor-id="cobweb-plots">Cobweb plots</h3>
+<p>Fixed point iteration has a very nice graphical way of illustration by the means of cobweb plots. These plots show the identity line <img src="https://latex.codecogs.com/png.latex?y%20=%20x"> as well as the function output <img src="https://latex.codecogs.com/png.latex?y%20=%20f(x)">, both over the entire function domain. Ideally they should cross in a single point which is the result we are looking for. Below are cobweb plots which show the peak time calculation corresponding to a transition from Ce = 0.1 μg/L to 0.4 μg/L.</p>
+<div id="fig-cobweb1" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-cobweb1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="https://jaj42.github.io/blog/posts/202602_moderntci/cobweb1.png" class="img-fluid figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-cobweb1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;3: Context sensitive peak time for Ce increase from 0.1 to 0.4. Initial value 0
+</figcaption>
+</figure>
+</div>
+<div id="fig-cobweb1zoom" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-cobweb1zoom-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="https://jaj42.github.io/blog/posts/202602_moderntci/cobweb1.5.png" class="img-fluid figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-cobweb1zoom-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;4: Zoom on previous figure
+</figcaption>
+</figure>
+</div>
+<div id="fig-cobweb2" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-cobweb2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="https://jaj42.github.io/blog/posts/202602_moderntci/cobweb2.png" class="img-fluid figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-cobweb2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;5: Context sensitive peak time for Ce increase from 0.1 to 0.4. Initial value max peak_time
+</figcaption>
+</figure>
+</div>
+</section>
+</section>
+<section id="find_peak" class="level2">
+<h2 class="anchored" data-anchor-id="find_peak">find_peak</h2>
+<p>At the center of the inner loop is a very important function which we have not visited yet: <code>find_peak</code>. This function is a straight-forward hill climbing algorithm which takes the predicted Ce curve resulting from the candidate rate and finds the maximum of the curve. It does this with steps of 1 second to approach the peak. This is an integer programming algorithm. While general integer programming is NP-complete, this specific problem is tractable because we’re searching a 1D unimodal function where hill climbing guarantees finding the global optimum in polynomial time. However it means that there are not many well tested optimizations for this. However, we now have a continuous UDF with floating point support. Having floating support gives access to an entire range of standard minimization functions.</p>
+<p>I use the standard method proposed by the SciPy <code>minimize_scalar</code> function, which uses Brent’s method. This is a minimizer whereas we want to maximize the function to find the peak. Hence we need to change the objective by putting a minus in front.</p>
+<div id="9c44bb0e" class="cell" data-execution_count="7">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">def</span> find_peak(</span>
+<span id="cb7-2">    current_time: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">int</span>,</span>
+<span id="cb7-3">    rate: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span>,</span>
+<span id="cb7-4">    Ae: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">list</span>[<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span>],</span>
+<span id="cb7-5">    peak_time: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">int</span>,</span>
+<span id="cb7-6">    lambdas: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">list</span>[<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span>],</span>
+<span id="cb7-7">    e_udf: Callable,</span>
+<span id="cb7-8">    delta_seconds: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">int</span>,</span>
+<span id="cb7-9">) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-&gt;</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">int</span>:</span>
+<span id="cb7-10">    <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">def</span> objective(t):</span>
+<span id="cb7-11">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span>(tci.virtual_model(Ae, t, peak_time, lambdas, <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> e_udf(t) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> rate)</span>
+<span id="cb7-12"></span>
+<span id="cb7-13">    result <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> minimize_scalar(</span>
+<span id="cb7-14">        objective,</span>
+<span id="cb7-15">        bounds<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>(delta_seconds, peak_time),</span>
+<span id="cb7-16">        method<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"bounded"</span>,</span>
+<span id="cb7-17">        options<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>{<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"xatol"</span>: <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.1</span>},  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># 0.1 second tolerance</span></span>
+<span id="cb7-18">    )</span>
+<span id="cb7-19">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span> result.x</span></code></pre></div></div>
+</div>
+<p>If I time it, this does not dramatically increase speed with a mean execution time of 1.54 seconds. It makes sense that the fixed point function has more impact here because if it reduces its number of iterations, it removes calls to <code>find_peaks</code> altogether. However, if we compare to the previous code below, we gained a lot of readability on top of using a battle tested optimizer:</p>
+<div id="5bdbd358" class="cell" data-execution_count="8">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">def</span> find_peak(</span>
+<span id="cb8-2">    current_time: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">int</span>,</span>
+<span id="cb8-3">    rate: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span>,</span>
+<span id="cb8-4">    Ae: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">list</span>[<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span>],</span>
+<span id="cb8-5">    peak_time: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">int</span>,</span>
+<span id="cb8-6">    lambdas: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">list</span>[<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span>],</span>
+<span id="cb8-7">    e_udf: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">list</span>[<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span>],</span>
+<span id="cb8-8">    delta_seconds: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">int</span>,</span>
+<span id="cb8-9">) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-&gt;</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">int</span>:</span>
+<span id="cb8-10">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">"""Find the time when effect site concentration will peak"""</span></span>
+<span id="cb8-11"></span>
+<span id="cb8-12">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Calculate concentrations at three time points</span></span>
+<span id="cb8-13">    current <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> (</span>
+<span id="cb8-14">        tci.virtual_model(Ae, current_time, peak_time, lambdas, <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb8-15">        <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> e_udf(current_time) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> rate</span>
+<span id="cb8-16">    )</span>
+<span id="cb8-17">    earlier <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> (</span>
+<span id="cb8-18">        tci.virtual_model(Ae, current_time <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, peak_time, lambdas, <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb8-19">        <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> e_udf(current_time <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> rate</span>
+<span id="cb8-20">    )</span>
+<span id="cb8-21">    later <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> (</span>
+<span id="cb8-22">        tci.virtual_model(Ae, current_time <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, peak_time, lambdas, <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb8-23">        <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> e_udf(current_time <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> rate</span>
+<span id="cb8-24">    )</span>
+<span id="cb8-25"></span>
+<span id="cb8-26">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Search for peak</span></span>
+<span id="cb8-27">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">while</span> current <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&lt;</span> earlier <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">or</span> current <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&lt;</span> later:</span>
+<span id="cb8-28">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> current <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&lt;</span> earlier:</span>
+<span id="cb8-29">            <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> current_time <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> delta_seconds:</span>
+<span id="cb8-30">                <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span> current_time</span>
+<span id="cb8-31">            current_time <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-=</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span></span>
+<span id="cb8-32">            later <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> current</span>
+<span id="cb8-33">            current <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> earlier</span>
+<span id="cb8-34">            earlier <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> (</span>
+<span id="cb8-35">                tci.virtual_model(Ae, current_time, peak_time, lambdas, <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb8-36">                <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> e_udf(current_time) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> rate</span>
+<span id="cb8-37">            )</span>
+<span id="cb8-38">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">else</span>:</span>
+<span id="cb8-39">            current_time <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+=</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span></span>
+<span id="cb8-40">            earlier <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> current</span>
+<span id="cb8-41">            current <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> later</span>
+<span id="cb8-42">            later <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> (</span>
+<span id="cb8-43">                tci.virtual_model(Ae, current_time <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, peak_time, lambdas, <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb8-44">                <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> e_udf(current_time <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> rate</span>
+<span id="cb8-45">            )</span>
+<span id="cb8-46"></span>
+<span id="cb8-47">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span> current_time</span></code></pre></div></div>
+</div>
+<p>With all these modifications, we still obtain the exact same result as previously with our TCI profile:</p>
+<div id="fig-case" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-case-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="https://jaj42.github.io/blog/posts/202602_moderntci/Figure_3_continuous.png" class="img-fluid figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-case-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;6: The entire simulated case using the new algorithms
+</figcaption>
+</figure>
+</div>
+<section id="infusion-rate-wobble" class="level3">
+<h3 class="anchored" data-anchor-id="infusion-rate-wobble">Infusion rate wobble</h3>
+<p>If we zoom in onto the infusion rate, we see that there is quite some wobble.</p>
+<div id="fig-wobble" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-wobble-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="https://jaj42.github.io/blog/posts/202602_moderntci/Figure_3_wobble.png" class="img-fluid figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-wobble-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;7: Wobble in infusion rate due to effect site targeting
+</figcaption>
+</figure>
+</div>
+<p>As Shafer and Gregg<span class="citation" data-cites="shafer_algorithms_1992"><sup>1</sup></span> write:</p>
+<blockquote class="blockquote">
+<p><em>This algorithm rapidly converges on the correct solution for I. Implementation of this algorithm produces an oscillation of the infusion rate during maintenance of constant concentrations. This is a result of the use of discrete time rather than continuous time. Once the effect site concentration peaks at the target concentration, the effect site concentration necessarily equals the plasma concentration. In our own implementation we found that once the effect site concentration is within 5% of the desired target, we simply maintain the plasma concentration at the desired target, which is easily calculated</em></p>
+</blockquote>
+<p>Indeed, if we reduce <code>delta_seconds</code> from 10 seconds to a lower value, the wobble is considerably reduced. STANPUMP implements the smart trick highlighted above where it switches to plasma targeting when it gets close to the target, thereby completing removing this effect.</p>
+</section>
+<section id="eleveld-propofol-example" class="level3">
+<h3 class="anchored" data-anchor-id="eleveld-propofol-example">Eleveld Propofol example</h3>
+<p>Of course all of this is not only valid for the Sufentanil model. Below is an example which uses the Eleveld Propofol model for a male individual of 35 years, weighing 75 kg and measuring 175cm.</p>
+<div id="8365d311" class="cell" data-execution_count="9">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1">model <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> tci.Parameters(</span>
+<span id="cb9-2">    k10<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.2577585580908108</span>,  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># min⁻¹</span></span>
+<span id="cb9-3">    k12<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.2913939174276039</span>,  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># min⁻¹</span></span>
+<span id="cb9-4">    k13<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.12286871331825001</span>,  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># min⁻¹</span></span>
+<span id="cb9-5">    k21<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.07179436034656034</span>,  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># min⁻¹</span></span>
+<span id="cb9-6">    k31<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.004586708876899454</span>,  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># min⁻¹</span></span>
+<span id="cb9-7">    ke0<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.14631</span>,  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># min⁻¹</span></span>
+<span id="cb9-8">    vc<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">6.283</span>,  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># L</span></span>
+<span id="cb9-9">)</span></code></pre></div></div>
+</div>
+<p>Discrete peak time: 195 seconds, continuous UDF peak: 194.50040271047075 seconds. <img src="https://jaj42.github.io/blog/posts/202602_moderntci/eleveld.png" id="fig-wobble" class="img-fluid" alt="Effect site TCI using the Eleveld Propofol model"></p>
+</section>
+</section>
+<section id="closing" class="level2">
+<h2 class="anchored" data-anchor-id="closing">Closing</h2>
+<p>We went from 3.19 seconds execution time to 1.54 seconds while improving precision. Did we actually beat STANPUMP? Far from it, we beat a naive Python reimplementation of the STANPUMP algorithm by using streamlined algorithms written in C from state of the art libraries. STANPUMP will take orders of magnitude less time on modern hardware for these calculations. However, I hope we gained greater insight into the algorithms by finding patterns and generalizing them. Maybe modern hardware and algorithms will bring a bright future to TCI with continuous improvement and modernization?</p>
+</section>
+<section id="references" class="level2">
+<h2 class="anchored" data-anchor-id="references">References</h2>
+<div id="refs" class="references csl-bib-body">
+<div id="ref-shafer_algorithms_1992" class="csl-entry">
+<div class="csl-left-margin">1. </div><div class="csl-right-inline">Shafer SL, Gregg KM. Algorithms to rapidly achieve and maintain stable drug concentrations at the site of drug effect with a computer-controlled infusion pump. <em>Journal of Pharmacokinetics and Biopharmaceutics</em> [Internet] 1992 [cited 2025 Aug 19]; <strong>20</strong>: 147–69 Available from: <a href="http://link.springer.com/10.1007/BF01070999">http://link.springer.com/10.1007/BF01070999</a></div>
+</div>
+<div id="ref-abuhelwa_advan-style_2015" class="csl-entry">
+<div class="csl-left-margin">2. </div><div class="csl-right-inline">Abuhelwa AY, Foster DJR, Upton RN. <span>ADVAN</span>-style analytical solutions for common pharmacokinetic models. <em>Journal of Pharmacological and Toxicological Methods</em> [Internet] 2015 [cited 2025 Aug 19]; <strong>73</strong>: 42–8 Available from: <a href="https://linkinghub.elsevier.com/retrieve/pii/S1056871915000362">https://linkinghub.elsevier.com/retrieve/pii/S1056871915000362</a></div>
+</div>
+<div id="ref-2020SciPy-NMeth" class="csl-entry">
+<div class="csl-left-margin">3. </div><div class="csl-right-inline">Virtanen P, Gommers R, Oliphant TE, et al. <a href="https://doi.org/10.1038/s41592-019-0686-2"><span class="nocase"><span>SciPy</span> 1.0: Fundamental Algorithms for Scientific Computing in Python</span></a>. <em>Nature Methods</em> 2020; <strong>17</strong>: 261–72 </div>
+</div>
+</div>
+
+
+</section>
+
+<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" id="quarto-citation"><h2 class="anchored quarto-appendix-heading">Citation</h2><div><div class="quarto-appendix-secondary-label">BibTeX citation:</div><pre class="sourceCode code-with-copy quarto-appendix-bibtex"><code class="sourceCode bibtex">@online{joachim2026,
+  author = {Joachim, Jona},
+  title = {TCI - Caught in the Inner Loop},
+  date = {2026-02-16},
+  url = {https://jaj42.github.io/blog/posts/202602_moderntci/index.html},
+  langid = {en}
+}
+</code></pre><div class="quarto-appendix-secondary-label">For attribution, please cite this work as:</div><div id="ref-joachim2026" class="csl-entry quarto-appendix-citeas">
+<div class="">Joachim J. TCI - caught in the inner loop
+[Internet]. 2026. Available from: <a href="https://jaj42.github.io/blog/posts/202602_moderntci/index.html">https://jaj42.github.io/blog/posts/202602_moderntci/index.html</a></div>
+</div></div></section></div> ]]></description>
+  <category>pharmacometrics</category>
+  <category>tci</category>
+  <guid>https://jaj42.github.io/blog/posts/202602_moderntci/</guid>
+  <pubDate>Sun, 15 Feb 2026 23:00:00 GMT</pubDate>
+  <media:content url="https://jaj42.github.io/blog/posts/202602_moderntci/cobweb1.png" medium="image" type="image/png" height="73" width="144"/>
+</item>
 <item>
   <title>Unit Disposition Functions and the TCI algorithm</title>
   <dc:creator>Jona Joachim</dc:creator>
@@ -51,7 +1052,7 @@
 <ul>
 <li>UDF shows 1 μg/s -&gt; 0.19 μg/L at peak</li>
 <li>Therefore you need 0.3 / 0.19 = 1.58 μg/s</li>
-<li>This amounts to a bolus of 15.7 μg over 10 seconds</li>
+<li>This amounts to a bolus of 15.8 μg over 10 seconds</li>
 <li>Formula: <code>rate = target / udf[peak_time]</code></li>
 </ul>
 <p>This is the foundation of the TCI algorithm: <strong>scale the unit response to achieve any target</strong>.</p>
@@ -74,7 +1075,7 @@ Figure&nbsp;1: TCI infusion based on a scaled UDF with a single initial bolus
 <section id="the-pharmacometric-model" class="level3">
 <h3 class="anchored" data-anchor-id="the-pharmacometric-model">The Pharmacometric Model</h3>
 <p>We will use the Gepts Sufentanil model again since it is convenient and has no covariates.</p>
-<div id="133a934d" class="cell" data-execution_count="1">
+<div id="5bf9d1f5" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><span class="im" style="color: #00769E;
 background-color: null;
 font-style: inherit;">import</span> numpy <span class="im" style="color: #00769E;
@@ -130,7 +1131,7 @@ font-style: inherit;">14.3</span>,</span>
 </section>
 <section id="convert-time-units-and-pre-compute-system-properties" class="level3">
 <h3 class="anchored" data-anchor-id="convert-time-units-and-pre-compute-system-properties">Convert Time Units and pre-compute System Properties</h3>
-<div id="7fe861ee" class="cell" data-execution_count="2">
+<div id="cc74e8ee" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># Convert to seconds for 10-second update intervals</span></span>
@@ -181,7 +1182,7 @@ font-style: inherit;"># Extract effect site UDF</span></span></code></pre></div>
 <h3 class="anchored" data-anchor-id="the-main-simulation-loop">The Main Simulation Loop</h3>
 <p>The TCI algorithm runs every 10 seconds, recalculating the infusion rate based on the current target. The 10 seconds step is a convention introduced by STANPUMP but this is a setting that can be overrided.</p>
 <p>In this simulation, I set an intial effect site target at 0.2 μg/L. After 500 seconds it is increased to 0.3 μg/L and after 1000 seconds it is lowered to 0.1 μg/L.</p>
-<div id="81228dfa" class="cell" data-execution_count="3">
+<div id="dc21c3c1" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># Initialize simulation state</span></span>
@@ -333,7 +1334,7 @@ font-style: inherit;">sum</span>(Ce))</span></code></pre></div></div>
 </section>
 <section id="the-algorithm" class="level4">
 <h4 class="anchored" data-anchor-id="the-algorithm">The Algorithm</h4>
-<div id="e9bdbab9" class="cell" data-execution_count="4">
+<div id="31c7dcc3" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
@@ -547,7 +1548,7 @@ font-style: inherit;">return</span> rate_candidate</span></code></pre></div></di
 <section id="find-peak-function" class="level4">
 <h4 class="anchored" data-anchor-id="find-peak-function">Find Peak function</h4>
 <p>Find when effect site concentration peaks with given rate.</p>
-<div id="b69a65ca" class="cell" data-execution_count="5">
+<div id="709ffcf7" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
@@ -748,7 +1749,7 @@ font-style: inherit;">return</span> current_time</span></code></pre></div></div>
 <h3 class="anchored" data-anchor-id="compartment-update">Compartment Update</h3>
 <p>After calculating the rate, we need to run the model for <code>delta_seconds</code> to obtain our next effect site concentration.</p>
 <p>The expensive linear algebra happened only <strong>once</strong> in the beginning of the session. The real-time algorithm is just arithmetics and array access which was fast enough to run on a 1990s microcontroller.</p>
-<div id="1f628bbe" class="cell" data-execution_count="6">
+<div id="2b493ee7" class="cell" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
@@ -800,7 +1801,7 @@ font-style: inherit;">-</span> decay)</span></code></pre></div></div>
 </section>
 <section id="visualizing-the-results" class="level2">
 <h2 class="anchored" data-anchor-id="visualizing-the-results">Visualizing the Results</h2>
-<div id="80217ab8" class="cell" data-execution_count="7">
+<div id="d4d89d25" class="cell" data-execution_count="7">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><span class="im" style="color: #00769E;
 background-color: null;
 font-style: inherit;">import</span> matplotlib.pyplot <span class="im" style="color: #00769E;
@@ -2346,7 +3347,7 @@ font-style: inherit;">);</span></span></code></pre></div></div>
 <h2 class="anchored" data-anchor-id="reimplementation-in-python">Reimplementation in Python</h2>
 <p>STANPUMP represents a remarkable combination of deep TCI algorithm knowledge and programming expertise. The authors derived mathematical solutions themselves to optimize performance and employed coding techniques that enabled real-time execution on very basic hardware. With over 10 years of clinical use, the software’s algorithms are thoroughly proven in practice. To experiment with the code and test it with my own models, I decided to reimplement it in Python. I began with a <a href="https://framagit.org/jaj/ministan/-/blob/main/python/ministan.py">1:1 translation</a> of the C code, then gradually modernized sections using contemporary approaches like array programming with NumPy<span class="citation" data-cites="harris2020array"><sup>5</sup></span>.</p>
 <p>For example, the calculation of the eigenvalues is straightforward with NumPy:</p>
-<div id="7107d715" class="cell" data-execution_count="1">
+<div id="f1412e93" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><span class="im" style="color: #00769E;
 background-color: null;
 font-style: inherit;">import</span> numpy <span class="im" style="color: #00769E;

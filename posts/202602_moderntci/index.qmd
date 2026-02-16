@@ -1,8 +1,9 @@
 ---
 title: TCI - caught in the inner loop
 author: "Jona Joachim"
-date: "2026-02-14"
+date: "2026-02-16"
 categories: [pharmacometrics, tci]
+image: "cobweb1.png"
 bibliography: pkpd.bib
 csl: british-journal-of-anaesthesia.csl
 citation:

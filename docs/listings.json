@@ -2,6 +2,7 @@
   {
     "listing": "/index.html",
     "items": [
+      "/posts/202602_moderntci/index.html",
       "/posts/202602_udf/index.html",
       "/posts/202508_stanpump/index.html",
       "/posts/201911_rflink/index.html",
