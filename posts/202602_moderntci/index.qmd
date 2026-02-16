@@ -6,7 +6,7 @@ categories: [pharmacometrics, tci]
 image: "cobweb1.png"
 bibliography: pkpd.bib
 csl: british-journal-of-anaesthesia.csl
-license: "CC BY-ND"
+license: "CC BY-NC"
 citation:
   url: https://jaj42.github.io/blog/posts/202602_moderntci/index.html
 ---
