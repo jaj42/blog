@@ -98,9 +98,9 @@ div.csl-indent {
 <link href="../../site_libs/quarto-html/quarto-syntax-highlighting-ed96de9b727972fe78a7b5d16c58bf87.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
 <script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../../site_libs/bootstrap/bootstrap-ffa9a6279353761231ec249df0a7fdd3.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
-<link href="../../site_libs/bootstrap/bootstrap-dark-bae33c85dea990b555726d9e885fc0e5.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
-<link href="../../site_libs/bootstrap/bootstrap-ffa9a6279353761231ec249df0a7fdd3.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-960d9d362f81d399278ec3e29b622b37.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-dark-7c8e055e70d4b6a1e9086eb41eca0607.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="../../site_libs/bootstrap/bootstrap-960d9d362f81d399278ec3e29b622b37.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -420,7 +420,7 @@ window.Quarto = {
 <p>In order to calculate it, we use the model equation for which STANPUMP includes closed form solutions. What is particular about these formulas is that they cannot be established for arbitrary time varying infusion profiles since the equations become intractable<span class="citation" data-cites="shafer_algorithms_1992"><sup><a href="#ref-shafer_algorithms_1992" role="doc-biblioref">1</a></sup></span>. Instead, these formulas are only valid for constant infusion rate. Despite this limitation, the formulas remain useful due to the <strong>superposition principle</strong> which is an important property that emerges from the fact that the models are linear. Thanks to the superposition principle it is possible to handle infusion rate changes by switching to a new instance of the formula with the new infusion rate and which has its initial state copied over from the previous infusion. Rate changes introduce boundaries and the formula is valid from one boundary to the other. It is thus possible to obtain smooth model responses with infinite precision while advancing from one rate boundary to the other. For this reason, the formulas are called advancers or ADVAN in the NONMEM community and solutions are generally available for most common PK models<span class="citation" data-cites="abuhelwa_advan-style_2015"><sup><a href="#ref-abuhelwa_advan-style_2015" role="doc-biblioref">2</a></sup></span>. In mathematics, the formulas would be called state transition functions.</p>
 <p>This means that, while STANPUMP has decided to precalculate the UDF at discrete intervals of 1 second for CPU efficiency, we are not bound to this decision and we can use a smooth analytic UDF with infinite precision.</p>
 <p>Below is the Python implementation of a continuous UDF with unit infusion up to 10 seconds and zero infusion afterwards.</p>
-<div id="6a00283c" class="cell" data-execution_count="1">
+<div id="4a7fa101" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> udf_continuous(</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    lambdas: NDArray[np.float64],</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    coefs: NDArray[np.float64],</span>
@@ -445,7 +445,7 @@ window.Quarto = {
 <span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> piecewise</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>Now this code bears some complexity and we will go over it step by step. First of all, there are two function defined inside of the function. These are called closures and they can share state with the parent function. The parent actually returns one of these closures as its result. This means that this function is a <em>factory</em> for creating a UDF which includes all the necessary parameters and depends only on time. The <code>@np.vectorize</code> function decoration is a neat feature which makes it possible to use the function not only with a single value of time but apply it directly to a list or vector of time values and obtain a list of effect site concentrations corresponding to the time values as seen below:</p>
-<div id="0068bf22" class="cell" data-execution_count="2">
+<div id="557a60ff" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>my_udf <span class="op">=</span> udf_continuous(lambdas, coefs.e_coef, delta_seconds)</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(my_udf([<span class="dv">0</span>, <span class="dv">5</span>, <span class="dv">10</span>, <span class="dv">15</span>, <span class="dv">20</span>, <span class="dv">50</span>, <span class="dv">100</span>, <span class="dv">200</span>, <span class="dv">500</span>, <span class="dv">1000</span>, <span class="dv">10000</span>]))</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>[<span class="fl">0.</span>         <span class="fl">0.00161781</span> <span class="fl">0.00641626</span> <span class="fl">0.0126963</span>  <span class="fl">0.01881552</span> <span class="fl">0.05233268</span></span>
@@ -479,7 +479,7 @@ Figure&nbsp;2: Zoom in on the initial part of the UDF where we see that the disc
 <section id="fixed-point-iteration" class="level2">
 <h2 class="anchored" data-anchor-id="fixed-point-iteration">Fixed Point iteration</h2>
 <p>Let’s take a closer look at the main inner loop optimization for effect site TCI. The loop starts with <code>while not ok_condition:</code> and loops until it found parameters which yield a Ce close enough to the target value at the end of the 10 second frame. It jointly optimizes the context sensitive peak time <code>peak_time_tmp</code> and infusion rate <code>rate_candidate</code>. It starts with initial values, checks for the terminating condition. If the condition is not met, it loops and takes as initial values the ones obtained from the previous run. It returns when values have converged and are no longer changing.</p>
-<div id="2039f6bf" class="cell" data-execution_count="3">
+<div id="b456de61" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Set target</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> t <span class="op">&lt;=</span> <span class="dv">500</span>:</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    current_target <span class="op">=</span> <span class="fl">0.2</span></span>
@@ -522,11 +522,12 @@ Figure&nbsp;2: Zoom in on the initial part of the UDF where we see that the disc
 <p><span class="math display">\[
 f(x_{\text{fix}}) = x_{\text{fix}}
 \]</span></p>
-<p>We try to find the right <span class="math inline">\(x\)</span> so that <span class="math inline">\(f(x)\)</span> returns <span class="math inline">\(x\)</span>. In our case, we have two variables <code>peak_time_tmp</code> and <code>rate_candidate</code> so we can either define <span class="math inline">\(x\)</span> to be a 2-element vector or write <span class="math inline">\(f(x, y) = (x, y)\)</span>. If you ask AI to analyze the algorithm, I might tell you that the particular variant used by STANPUMP to solve the fixed point problem is called the Gauss–Seidel method (but don’t quote me on this).</p>
+<p>We try to find the right <span class="math inline">\(x\)</span> so that <span class="math inline">\(f(x)\)</span> returns <span class="math inline">\(x\)</span>. In our case, we have two variables <code>peak_time_tmp</code> and <code>rate_candidate</code> so we can either define <span class="math inline">\(x\)</span> to be a 2-element vector or write <span class="math inline">\(f(x, y) = (x, y)\)</span>.</p>
+<p>If you ask AI to analyze the algorithm, it might tell you that the particular variant used by STANPUMP to solve the fixed point problem is called the Gauss–Seidel method (but don’t quote me on this).</p>
 <p>There is a key difference however in the STANPUMP algorithm when compared to the classic fixed point iteration problem. The fixed point condition is <span class="math inline">\(f(x) = x\)</span> whereas STANPUMP uses this result to calculate the Ce and sets the condition on the Ce being equal to the target Ce, rather than then peak time and rate.</p>
 <p>However, we might still get away with our standard fixed point algorithm. Indeed, <code>predicted_ce</code> is completely determined by <code>peak_time_tmp</code> and <code>rate_candidate</code> so if we solve for these two, we automatically solve <code>predicted_ce</code>.</p>
 <p>Below is the function definition for <span class="math inline">\(f\)</span>, called <code>peak_to_peak</code>.</p>
-<div id="669c8478" class="cell" data-execution_count="4">
+<div id="50597161" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> peak_to_peak(state, Ae, current_target, udf, peak_time, lambdas, delta_seconds):</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    rate_candidate, peak_time_tmp <span class="op">=</span> state</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    virtual <span class="op">=</span> tci.virtual_model(Ae, peak_time_tmp, peak_time, lambdas, <span class="va">True</span>)</span>
@@ -546,8 +547,8 @@ f(x_{\text{fix}}) = x_{\text{fix}}
 <span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>    )</span>
 <span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> np.array([rate_candidate, peak_time_tmp])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<p>Once we defined it, we can use the <code>fixed_point</code> function from the scipy<span class="citation" data-cites="2020SciPy-NMeth"><sup><a href="#ref-2020SciPy-NMeth" role="doc-biblioref">3</a></sup></span> optimize library. It will return rate and peak time but we discard the latter one because we only need rate.</p>
-<div id="c5212356" class="cell" data-execution_count="5">
+<p>Once we defined it, we can use the <code>fixed_point</code> function from the SciPy<span class="citation" data-cites="2020SciPy-NMeth"><sup><a href="#ref-2020SciPy-NMeth" role="doc-biblioref">3</a></sup></span> optimize library. It will return rate and peak time but we discard the latter one because we only need rate.</p>
+<div id="df05e1bc" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> scipy.optimize <span class="im">import</span> fixed_point</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> t <span class="op">&lt;=</span> <span class="dv">500</span>:</span>
@@ -569,7 +570,7 @@ f(x_{\text{fix}}) = x_{\text{fix}}
 <p>If we look at the <code>peak_to_peak</code> function, we see something very interesting. <code>rate_candidate</code> is passed as an argument to the function but it is never used in the calculation. It is overwritten by the line <code>rate_candidate = residual / udf(peak_time_tmp)</code> without having had any effect on the calculation. Could it be that it is not needed at all? That the only thing we actually need to optimize in the peak time?</p>
 <section id="univariate-fixed-point-iteration" class="level3">
 <h3 class="anchored" data-anchor-id="univariate-fixed-point-iteration">Univariate fixed point iteration</h3>
-<div id="48eed902" class="cell" data-execution_count="6">
+<div id="86b301da" class="cell" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> peak_to_peak(state, Ae, current_target, udf, peak_time, lambdas, delta_seconds):</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    peak_time_tmp <span class="op">=</span> state.item()</span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    virtual <span class="op">=</span> tci.virtual_model(Ae, peak_time_tmp, peak_time, lambdas, <span class="va">True</span>)</span>
@@ -642,7 +643,7 @@ Figure&nbsp;5: Context sensitive peak time for Ce increase from 0.1 to 0.4. Init
 <h2 class="anchored" data-anchor-id="find_peak">find_peak</h2>
 <p>At the center of the inner loop is a very important function which we have not visited yet: <code>find_peak</code>. This function is a straight-forward hill climbing algorithm which takes the predicted Ce curve resulting from the candidate rate and finds the maximum of the curve. It does this with steps of 1 second to approach the peak. This is an integer programming algorithm. While general integer programming is NP-complete, this specific problem is tractable because we’re searching a 1D unimodal function where hill climbing guarantees finding the global optimum in polynomial time. However it means that there are not many well tested optimizations for this. However, we now have a continuous UDF with floating point support. Having floating support gives access to an entire range of standard minimization functions.</p>
 <p>I use the standard method proposed by the SciPy <code>minimize_scalar</code> function, which uses Brent’s method. This is a minimizer whereas we want to maximize the function to find the peak. Hence we need to change the objective by putting a minus in front.</p>
-<div id="9c44bb0e" class="cell" data-execution_count="7">
+<div id="bc7d9c14" class="cell" data-execution_count="7">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> find_peak(</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    current_time: <span class="bu">int</span>,</span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    rate: <span class="bu">float</span>,</span>
@@ -664,7 +665,7 @@ Figure&nbsp;5: Context sensitive peak time for Ce increase from 0.1 to 0.4. Init
 <span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> result.x</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>If I time it, this does not dramatically increase speed with a mean execution time of 1.54 seconds. It makes sense that the fixed point function has more impact here because if it reduces its number of iterations, it removes calls to <code>find_peaks</code> altogether. However, if we compare to the previous code below, we gained a lot of readability on top of using a battle tested optimizer:</p>
-<div id="5bdbd358" class="cell" data-execution_count="8">
+<div id="8f749aee" class="cell" data-execution_count="8">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> find_peak(</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    current_time: <span class="bu">int</span>,</span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    rate: <span class="bu">float</span>,</span>
@@ -746,7 +747,7 @@ Figure&nbsp;7: Wobble in infusion rate due to effect site targeting
 <section id="eleveld-propofol-example" class="level3">
 <h3 class="anchored" data-anchor-id="eleveld-propofol-example">Eleveld Propofol example</h3>
 <p>Of course all of this is not only valid for the Sufentanil model. Below is an example which uses the Eleveld Propofol model for a male individual of 35 years, weighing 75 kg and measuring 175cm.</p>
-<div id="8365d311" class="cell" data-execution_count="9">
+<div id="0bfbdcbe" class="cell" data-execution_count="9">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>model <span class="op">=</span> tci.Parameters(</span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    k10<span class="op">=</span><span class="fl">0.2577585580908108</span>,  <span class="co"># min⁻¹</span></span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    k12<span class="op">=</span><span class="fl">0.2913939174276039</span>,  <span class="co"># min⁻¹</span></span>
@@ -762,7 +763,7 @@ Figure&nbsp;7: Wobble in infusion rate due to effect site targeting
 </section>
 <section id="closing" class="level2">
 <h2 class="anchored" data-anchor-id="closing">Closing</h2>
-<p>We went from 3.19 seconds execution time to 1.54 seconds while improving precision. Did we actually beat STANPUMP? Far from it, we beat a naive Python reimplementation of the STANPUMP algorithm by using streamlined algorithms written in C from state of the art libraries. STANPUMP will take orders of magnitude less time on modern hardware for these calculations. However, I hope we gained greater insight into the algorithms by finding patterns and generalizing them. Maybe modern hardware and algorithms will bring a bright future to TCI with continuous improvement and modernization?</p>
+<p>We went from 3.19 seconds execution time to 1.54 seconds while improving precision. Did we actually beat STANPUMP? Far from it, we beat a naive Python reimplementation of the STANPUMP algorithm by using streamlined algorithms written in C from state of the art libraries. STANPUMP will take orders of magnitude less time on modern hardware for these calculations. However, I hope we gained greater insight into the algorithms by finding patterns and generalizing them. Maybe modern hardware and algorithms can bring a bright future to TCI with continuous improvement and modernization.</p>
 </section>
 <section id="references" class="level2">
 <h2 class="anchored" data-anchor-id="references">References</h2>
@@ -781,7 +782,7 @@ Figure&nbsp;7: Wobble in infusion rate due to effect site targeting
 
 </section>
 
-<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" id="quarto-citation"><h2 class="anchored quarto-appendix-heading">Citation</h2><div><div class="quarto-appendix-secondary-label">BibTeX citation:</div><pre class="sourceCode code-with-copy quarto-appendix-bibtex"><code class="sourceCode bibtex">@online{joachim2026,
+<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" id="quarto-reuse"><h2 class="anchored quarto-appendix-heading">Reuse</h2><div class="quarto-appendix-contents"><div><a rel="license" href="https://creativecommons.org/licenses/by-nd/4.0/">CC BY-ND 4.0</a></div></div></section><section class="quarto-appendix-contents" id="quarto-citation"><h2 class="anchored quarto-appendix-heading">Citation</h2><div><div class="quarto-appendix-secondary-label">BibTeX citation:</div><pre class="sourceCode code-with-copy quarto-appendix-bibtex"><code class="sourceCode bibtex">@online{joachim2026,
   author = {Joachim, Jona},
   title = {TCI - Caught in the Inner Loop},
   date = {2026-02-16},

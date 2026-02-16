@@ -6,6 +6,7 @@ categories: [pharmacometrics, tci]
 image: "cobweb1.png"
 bibliography: pkpd.bib
 csl: british-journal-of-anaesthesia.csl
+license: "CC BY-ND"
 citation:
   url: https://jaj42.github.io/blog/posts/202602_moderntci/index.html
 ---
@@ -120,7 +121,9 @@ $$
 f(x_{\text{fix}}) = x_{\text{fix}}
 $$
 
-We try to find the right $x$ so that $f(x)$ returns $x$. In our case, we have two variables `peak_time_tmp` and `rate_candidate` so we can either define $x$ to be a 2-element vector or write $f(x, y) = (x, y)$. If you ask AI to analyze the algorithm, I might tell you that the particular variant used by STANPUMP to solve the fixed point problem is called the Gauss–Seidel method (but don't quote me on this).
+We try to find the right $x$ so that $f(x)$ returns $x$. In our case, we have two variables `peak_time_tmp` and `rate_candidate` so we can either define $x$ to be a 2-element vector or write $f(x, y) = (x, y)$.
+
+If you ask AI to analyze the algorithm, it might tell you that the particular variant used by STANPUMP to solve the fixed point problem is called the Gauss–Seidel method (but don't quote me on this).
 
 There is a key difference however in the STANPUMP algorithm when compared to the classic fixed point iteration problem. The fixed point condition is $f(x) = x$ whereas STANPUMP uses this result to calculate the Ce and sets the condition on the Ce being equal to the target Ce, rather than then peak time and rate.
 
@@ -150,7 +153,7 @@ def peak_to_peak(state, Ae, current_target, udf, peak_time, lambdas, delta_secon
     return np.array([rate_candidate, peak_time_tmp])
 ```
 
-Once we defined it, we can use the `fixed_point` function from the scipy @2020SciPy-NMeth optimize library. It will return rate and peak time but we discard the latter one because we only need rate.
+Once we defined it, we can use the `fixed_point` function from the SciPy @2020SciPy-NMeth optimize library. It will return rate and peak time but we discard the latter one because we only need rate.
 
 ```{python}
 #| eval: false
@@ -345,7 +348,7 @@ Discrete peak time: 195 seconds, continuous UDF peak: 194.50040271047075 seconds
 
 ## Closing
 
-We went from 3.19 seconds execution time to 1.54 seconds while improving precision. Did we actually beat STANPUMP? Far from it, we beat a naive Python reimplementation of the STANPUMP algorithm by using streamlined algorithms written in C from state of the art libraries. STANPUMP will take orders of magnitude less time on modern hardware for these calculations. However, I hope we gained greater insight into the algorithms by finding patterns and generalizing them. Maybe modern hardware and algorithms will bring a bright future to TCI with continuous improvement and modernization?
+We went from 3.19 seconds execution time to 1.54 seconds while improving precision. Did we actually beat STANPUMP? Far from it, we beat a naive Python reimplementation of the STANPUMP algorithm by using streamlined algorithms written in C from state of the art libraries. STANPUMP will take orders of magnitude less time on modern hardware for these calculations. However, I hope we gained greater insight into the algorithms by finding patterns and generalizing them. Maybe modern hardware and algorithms can bring a bright future to TCI with continuous improvement and modernization.
 
 ## References
 ::: {#refs}
