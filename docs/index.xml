@@ -50,7 +50,7 @@
 <p>In theory, eigendecomposition can go wrong if the matrix is malformed. I do not think that this is possible for PK systems but it is nevertheless easy to check if the eigendecomposition worked as expected. You can reconstruct the system matrix from the eigenvalue / eigenvector pairs and compare to see if they match. This is done in this function, which will fail if the reconstructed system matrix does not match the original one.</p>
 <p>Once, we have the eigenvalue / eigenvector pairs, we can obtain the model <strong>step response coefficients</strong>. The coefficients characterize the system response, which is the response to a unit infusion. The step response shows how the system responds to an excitation, it shows how plasma / effect site concentration dynamics are driven by the drug.</p>
 <p>You can click the code cell below to expand the function definition.</p>
-<div id="24833af7" class="cell" data-execution_count="1">
+<div id="25d192de" class="cell" data-execution_count="1">
 <details class="code-fold">
 <summary>Show eigendecomposition function definition</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><span class="kw" style="color: #003B4F;
@@ -258,7 +258,7 @@ font-style: inherit;">return</span> lambdas, p_coef, e_coef</span></code></pre><
 </details>
 </div>
 <p>This function can be used like below to calculate the lambda values and coefficients in one pass.</p>
-<div id="50dec544" class="cell" data-execution_count="2">
+<div id="10bc1fc5" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1">lambdas, p_coef, e_coef <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> eigendecomposition(</span>
@@ -270,7 +270,7 @@ font-style: inherit;">=</span> eigendecomposition(</span>
 <p>These values are identical to the ones calculated using the Laplace technique and they can be used as-is in the TCI algorithm. Using the Laplace domain transfer function approach, the coefficients emerge from the partial fraction decomposition of the residues.</p>
 <p>The key insight is that this method gives closed form solutions for any linear PKPD model. It can be applied for 1, 2 and 3 compartment models with or without effect site, with or without depot compartment and can be used with models of arbitrary number of compartments for example transit compartment models. The method can be used to fit the PKPD models (as implemented by NONMEM in the ADVAN5 and ADVAN7 routines) and for TCI. Using this technique, it is not necessary to painstakingly derive closed form solutions for particular systems.</p>
 <p>Once you calculated the lambdas and coefficients, you can use the regular STANPUMP algorithm and the model update function below to calculate concentrations for a given compartment over time. Here, <img src="https://latex.codecogs.com/png.latex?A"> is the initial state for each mode and the function returns the new state. This is an <em>ADVANcer</em> in the NONMEM sense. <img src="https://latex.codecogs.com/png.latex?A"> is a vector and the compartment concentration is the sum of the vector.</p>
-<div id="7598e0d1" class="cell" data-execution_count="3">
+<div id="930864d7" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
@@ -323,7 +323,7 @@ font-style: inherit;">-</span> decay)</span></code></pre></div></div>
 <p>The coefficients together with the lambda values define the model step response which on its own defines the entire dynamics of the model. The <strong>impulse response</strong> coefficients can be obtained by multiplying the coefficients with the lambda values.</p>
 <p>Using the well known modal closed form solution of the 3-compartment model Equation&nbsp;4, we can calculate the time response of a PK model given an input infusion or bolus.</p>
 <p><span id="eq-threecomp"><img src="https://latex.codecogs.com/png.latex?%0A%5Ctext%7BConc%7D(t)%20=%20A%20e%5E%7B-%5Calpha%20t%7D%20+%20B%20e%5E%7B-%5Cbeta%20t%7D%20+%20C%20e%5E%7B-%5Cgamma%20t%7D%0A%5Ctag%7B4%7D"></span></p>
-<div id="9ca8f2a0" class="cell" data-execution_count="4">
+<div id="30e57156" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
@@ -356,7 +356,7 @@ background-color: null;
 font-style: inherit;">0</span>)</span></code></pre></div></div>
 </div>
 <p>This impulse response is very special because it can derive the response to any infusion. It can be used to calculate the UDF. Indeed, in the code below, we define a unit infusion for <code>delta_seconds</code> which is defined as 10 seconds (called <code>pulse</code> below). The UDF is the result of a <strong>convolution</strong> of this unit infusion with the impulse response as shown in Figure&nbsp;1.</p>
-<div id="40e828f5" class="cell" data-execution_count="5">
+<div id="e1374fb7" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1">n_points <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
@@ -453,12 +453,12 @@ Figure&nbsp;4: Eleveld Propofol model plasma and effect site concentration outpu
   author = {Joachim, Jona},
   title = {TCI {Eigendecomposition}},
   date = {2026-03-03},
-  url = {https://jaj42.github.io/blog/posts/202602_impulse/index.html},
+  url = {https://jaj42.github.io/blog/posts/202603_eigen/index.html},
   langid = {en}
 }
 </code></pre><div class="quarto-appendix-secondary-label">For attribution, please cite this work as:</div><div id="ref-joachim2026" class="csl-entry quarto-appendix-citeas">
 <div class="">Joachim J. TCI Eigendecomposition [Internet].
-2026. Available from: <a href="https://jaj42.github.io/blog/posts/202602_impulse/index.html">https://jaj42.github.io/blog/posts/202602_impulse/index.html</a></div>
+2026. Available from: <a href="https://jaj42.github.io/blog/posts/202603_eigen/index.html">https://jaj42.github.io/blog/posts/202603_eigen/index.html</a></div>
 </div></div></section></div> ]]></description>
   <category>pharmacometrics</category>
   <category>tci</category>
