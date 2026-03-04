@@ -10,7 +10,461 @@
 <atom:link href="https://jaj42.github.io/blog/index.xml" rel="self" type="application/rss+xml"/>
 <description>Things I want to share</description>
 <generator>quarto-1.8.27</generator>
-<lastBuildDate>Sun, 15 Feb 2026 23:00:00 GMT</lastBuildDate>
+<lastBuildDate>Mon, 02 Mar 2026 23:00:00 GMT</lastBuildDate>
+<item>
+  <title>TCI Eigendecomposition</title>
+  <dc:creator>Jona Joachim</dc:creator>
+  <link>https://jaj42.github.io/blog/posts/202603_eigen/</link>
+  <description><![CDATA[ 
+
+
+
+
+
+
+<section id="eigendecomposition-reveals-itself" class="level2">
+<h2 class="anchored" data-anchor-id="eigendecomposition-reveals-itself">Eigendecomposition reveals itself</h2>
+<p>I recently read the excellent <a href="https://www.dropbox.com/scl/fi/t1ko4w537ompfbilmrenc/uptopcoef-260220.pdf?rlkey=dvkc6klze46zye1gif17p5tyh">document written by Charles Minto</a> titled “From Eigenvalues to Plasma Coefficients”. In this document, Charles explains how to derive STANPUMP’s plasma coefficient using the Laplace transform of the PK system matrix.</p>
+<p>The derivation was previously published by Shafer and Gregg<span class="citation" data-cites="shafer_algorithms_1992"><sup>1</sup></span> but I found it difficult to follow the derivation of the coefficients themselves, especially the step of partial fraction decomposition.</p>
+<p>After some more background reading and on the second reading, I realized that this is equivalent to a standard technique called <strong>Eigendecomposition</strong>! This struck me as a “Eureka” moment because I like generalizing algorithms and finding common approaches across disciplines. This missing link unifies pharmacometrics, linear algebra, control theory and state space modeling. It shows that TCI is indeed rocket science because the algorithms are very close to the ones used to send Apollo spacecrafts to the moon.</p>
+<p>PK systems are transformations which transform infusion rates into plasma and effect side compartment concentrations. The common PK systems we work with are linear transformation, which is a very important characteristic without which all of our derivations are not valid. Linear transformations can be characterized by two determinants which are the <strong>eigenvalues</strong> and the <strong>eigenvectors</strong>.</p>
+<p>It can be difficult to grasp how eigenvalues and eigenvectors determine linear transformations. I find <a href="https://www.youtube.com/watch?v=ue3yoeZvt8E">this video</a> helpful to get some intuition on how it works.</p>
+<p>We already know the eigenvalues from previous blog posts, they are the macro (hybrid) rate constants <img src="https://latex.codecogs.com/png.latex?%5Clambda">. The eigenvectors are the key to derive the coefficients which link the PK system to infusion. They allow external input to enter the model.</p>
+</section>
+<section id="the-pk-system-matrix" class="level2">
+<h2 class="anchored" data-anchor-id="the-pk-system-matrix">The PK system matrix</h2>
+<p>For a 3-compartment PK model with effect compartment, the ODE system is usually written as in Equation&nbsp;1.</p>
+<p><span id="eq-ode"><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Baligned%7D%0A%5Cfrac%7BdA_1%7D%7Bdt%7D%20&amp;=%20-%20%5Cleft(k_%7B12%7D%20+%20k_%7B13%7D%20+%20k_%7B10%7D%5Cright)%20A_1%20+%20k_%7B21%7D%20A_2%20+%20k_%7B31%7D%20A_3%20+%20j(t),%20%5C%5C%0A%5Cfrac%7BdA_2%7D%7Bdt%7D%20&amp;=%20k_%7B12%7D%20A_1%20-%20k_%7B21%7D%20A_2,%20%5C%5C%0A%5Cfrac%7BdA_3%7D%7Bdt%7D%20&amp;=%20k_%7B13%7D%20A_1%20-%20k_%7B31%7D%20A_3,%20%5C%5C%0A%5Cfrac%7BdC_e%7D%7Bdt%7D%20&amp;=%20k_%7Be0%7D%20%5Cleft(%20%5Cfrac%7BA_1%7D%7BV_1%7D%20-%20C_e%20%5Cright).%0A%5Cend%7Baligned%7D%0A%5Ctag%7B1%7D"></span></p>
+<p>However, the dimensions of this system are not homogeneous. Indeed, for compartments 1-3, the ODEs refer to the drug quantity (usually expressed in mg) whereas the effect compartment is expressed as a concentration (mg/L). We need to unify dimensions for eigendecomposition. We can choose to convert all equations to mass or concentration. Converting to mass raises a problem for the effect site compartment since the volume and mass are usually unknown. For this reason, it is easier and elegant to convert all equations to concentration by dividing each compartment equation by its volume as seen in Equation&nbsp;2.</p>
+<p><span id="eq-ode-conc"><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Baligned%7D%0A%5Cfrac%7BdC_1%7D%7Bdt%7D%20&amp;=%20-%20%5Cleft(k_%7B12%7D%20+%20k_%7B13%7D%20+%20k_%7B10%7D%5Cright)%20C_1%20+%20k_%7B21%7D%20C_2%20%5Cfrac%7BV_2%7D%7BV_1%7D%20+%20k_%7B31%7D%20C_3%20%5Cfrac%7BV_3%7D%7BV_1%7D%20+%20%5Cfrac%7Bj(t)%7D%7BV_1%7D,%20%5C%5C%0A%5Cfrac%7BdC_2%7D%7Bdt%7D%20&amp;=%20k_%7B12%7D%20C_1%20%5Cfrac%7BV_1%7D%7BV_2%7D%20-%20k_%7B21%7D%20C_2,%20%5C%5C%0A%5Cfrac%7BdC_3%7D%7Bdt%7D%20&amp;=%20k_%7B13%7D%20C_1%20%5Cfrac%7BV_1%7D%7BV_3%7D%20-%20k_%7B31%7D%20C_3,%20%5C%5C%0A%5Cfrac%7BdC_e%7D%7Bdt%7D%20&amp;=%20k_%7Be0%7D%20C_1%20-%20k_%7Be0%7D%20C_e%0A%5Cend%7Baligned%7D%0A%5Ctag%7B2%7D"></span></p>
+<p>Given that <img src="https://latex.codecogs.com/png.latex?k_%7Bij%7D%20%5Cfrac%7BV_i%7D%7BV_j%7D%20=%20k_%7Bji%7D">, this expression can be simplified to the elegant Equation&nbsp;3.</p>
+<p><span id="eq-ode-conc-simp"><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Baligned%7D%0A%5Cfrac%7BdC_1%7D%7Bdt%7D%20&amp;=%20-%20%5Cleft(k_%7B12%7D%20+%20k_%7B13%7D%20+%20k_%7B10%7D%5Cright)%20C_1%20+%20k_%7B12%7D%20C_2%20+%20k_%7B13%7D%20C_3%20+%20%5Cfrac%7Bj(t)%7D%7BV_1%7D,%20%5C%5C%0A%5Cfrac%7BdC_2%7D%7Bdt%7D%20&amp;=%20k_%7B21%7D%20C_1%20-%20k_%7B21%7D%20C_2,%20%5C%5C%0A%5Cfrac%7BdC_3%7D%7Bdt%7D%20&amp;=%20k_%7B31%7D%20C_1%20-%20k_%7B31%7D%20C_3,%20%5C%5C%0A%5Cfrac%7BdC_e%7D%7Bdt%7D%20&amp;=%20k_%7Be0%7D%20C_1%20-%20k_%7Be0%7D%20C_e%0A%5Cend%7Baligned%7D%0A%5Ctag%7B3%7D"></span></p>
+<p>Equation&nbsp;3 can be written in matrix form as follows:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cfrac%7BdC%7D%7Bdt%7D%20=%20A%20C%20+%20J%0A"></p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AA%20=%20%5Cbegin%7Bpmatrix%7D%0A-(k12%20+%20k13%20%20+%20k10)%20&amp;%20k12%20&amp;%20k13%20&amp;%200%20%5C%5C%0Ak21%20&amp;%20-k21%20&amp;%200%20&amp;%200%20%5C%5C%0Ak31%20&amp;%200%20&amp;%20-k31%20&amp;%200%20%5C%5C%0Ake0%20&amp;%200%20&amp;%200%20&amp;%20-ke0%20%5C%5C%0A%5Cend%7Bpmatrix%7D,%0AJ%20=%20%5Cbegin%7Bpmatrix%7D%0A%5Cfrac%7Bj%7D%7BV%7D%20%5C%5C%0A0%20%5C%5C%0A0%20%5C%5C%0A0%20%5C%5C%0A%5Cend%7Bpmatrix%7D%0A"></p>
+</section>
+<section id="the-pk-system-matrix-1" class="level2">
+<h2 class="anchored" data-anchor-id="the-pk-system-matrix-1">The PK system matrix</h2>
+<p>Once we defined the system matrix, we can leverage standard libraries for eigenvalue decomposition. For example numpy provides <em>np.linalg.eig</em> which directly returns eigenvalues and eigenvectors given a matrix. This numpy function does all the heavy lifting.</p>
+<p>However, the returned eigenvalue/eigenvector pairs are not sorted. Eigenvalues have no concept of sorting, this is an additional structure that we impose. STANPUMP also needs to sort eigenvalues which it obtains using Viète’s trigonometric method. Our sorting code is a little bit more complicated because we generalize the maths. We need to extract the effect compartment eigenvalue (ke0), sort the PK eigenvalues, put everything back together and keep track of the ordering because we need to sort eigenvalues and eigenvectors in the same fashion since they go in pairs.</p>
+<p>In theory, eigendecomposition can go wrong if the matrix is malformed. I do not think that this is possible for PK systems but it is nevertheless easy to check if the eigendecomposition worked as expected. You can reconstruct the system matrix from the eigenvalue / eigenvector pairs and compare to see if they match. This is done in this function, which will fail if the reconstructed system matrix does not match the original one.</p>
+<p>Once, we have the eigenvalue / eigenvector pairs, we can obtain the model <strong>step response coefficients</strong>. The coefficients characterize the system response, which is the response to a unit infusion. The step response shows how the system responds to an excitation, it shows how plasma / effect site concentration dynamics are driven by the drug.</p>
+<p>You can click the code cell below to expand the function definition.</p>
+<div id="24833af7" class="cell" data-execution_count="1">
+<details class="code-fold">
+<summary>Show eigendecomposition function definition</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">def</span> eigendecomposition(k10, k12, k13, k21, k31, V1, ke0):</span>
+<span id="cb1-2">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># System matrix</span></span>
+<span id="cb1-3">    k123 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> k10 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> k12 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> k13</span>
+<span id="cb1-4">    A <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.array(</span>
+<span id="cb1-5">        [</span>
+<span id="cb1-6">            [<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span>k123,  k12,  k13,    <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>],</span>
+<span id="cb1-7">            [  k21, <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span>k21,    <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>,    <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>],</span>
+<span id="cb1-8">            [  k31,    <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>, <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span>k31,    <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>],</span>
+<span id="cb1-9">            [  ke0,    <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>,    <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>, <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span>ke0],</span>
+<span id="cb1-10">        ]</span>
+<span id="cb1-11">    )</span>
+<span id="cb1-12"></span>
+<span id="cb1-13">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Eigenvalue decomposition</span></span>
+<span id="cb1-14">    eigvals, eigvecs <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.linalg.eig(A)</span>
+<span id="cb1-15"></span>
+<span id="cb1-16">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Sort by magnitude (most negative first)</span></span>
+<span id="cb1-17">    sort_idx <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.argsort(eigvals)</span>
+<span id="cb1-18">    eigvals <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> eigvals[sort_idx]</span>
+<span id="cb1-19">    eigvecs <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> eigvecs[:, sort_idx]</span>
+<span id="cb1-20"></span>
+<span id="cb1-21">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># lambda_i are positive (decay constants)</span></span>
+<span id="cb1-22">    lambdas <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span>eigvals</span>
+<span id="cb1-23"></span>
+<span id="cb1-24">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Find ke0 index</span></span>
+<span id="cb1-25">    ke0_idx <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.argmin(np.<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">abs</span>(lambdas <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> ke0))</span>
+<span id="cb1-26"></span>
+<span id="cb1-27">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Create mask to separate PK eigenvalues from ke0</span></span>
+<span id="cb1-28">    pk_mask <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.ones_like(lambdas, dtype<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">bool</span>)</span>
+<span id="cb1-29">    pk_mask[ke0_idx] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">False</span></span>
+<span id="cb1-30"></span>
+<span id="cb1-31">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Reconstruct in STANPUMP order: [λ1_pk, λ2_pk, λ3_pk, ke0]</span></span>
+<span id="cb1-32">    lambdas <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.append(</span>
+<span id="cb1-33">        lambdas[pk_mask],</span>
+<span id="cb1-34">        lambdas[ke0_idx],</span>
+<span id="cb1-35">    )</span>
+<span id="cb1-36">    eigvecs <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.column_stack(</span>
+<span id="cb1-37">        [</span>
+<span id="cb1-38">            eigvecs[:, pk_mask],</span>
+<span id="cb1-39">            eigvecs[:, ke0_idx],</span>
+<span id="cb1-40">        ]</span>
+<span id="cb1-41">    )</span>
+<span id="cb1-42"></span>
+<span id="cb1-43">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># A can be reconstructed from eigenvalues and eigenvectors</span></span>
+<span id="cb1-44">    A_reconstructed <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> eigvecs <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">@</span> np.diag(<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span>lambdas) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">@</span> np.linalg.inv(eigvecs)</span>
+<span id="cb1-45">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">assert</span> np.allclose(A, A_reconstructed)</span>
+<span id="cb1-46"></span>
+<span id="cb1-47">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Initial condition for unit bolus in central compartment</span></span>
+<span id="cb1-48">    C0 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.array([<span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1.0</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> V1, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.0</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.0</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.0</span>])  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># µg/L</span></span>
+<span id="cb1-49"></span>
+<span id="cb1-50">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Modal coordinates</span></span>
+<span id="cb1-51">    alpha <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.linalg.inv(eigvecs) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">@</span> C0  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># µg/L</span></span>
+<span id="cb1-52"></span>
+<span id="cb1-53">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Plasma coefficients (row 0 = Cp)</span></span>
+<span id="cb1-54">    p_coef <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> eigvecs[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>, :] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> alpha <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> lambdas  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># sec/L</span></span>
+<span id="cb1-55"></span>
+<span id="cb1-56">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Effect site coefficients (row 3 = Ce)</span></span>
+<span id="cb1-57">    e_coef <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> eigvecs[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span>, :] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> alpha <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> lambdas  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># sec/L</span></span>
+<span id="cb1-58"></span>
+<span id="cb1-59">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span> lambdas, p_coef, e_coef</span></code></pre></div></div>
+</details>
+</div>
+<p>This function can be used like below to calculate the lambda values and coefficients in one pass.</p>
+<div id="50dec544" class="cell" data-execution_count="2">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1">lambdas, p_coef, e_coef <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> eigendecomposition(</span>
+<span id="cb2-2">    p.k10, p.k12, p.k13,</span>
+<span id="cb2-3">    p.k21, p.k31, p.vc, p.ke0,</span>
+<span id="cb2-4">)</span></code></pre></div></div>
+</div>
+<p>This function return coefficient for the plasma compartment and effect site compartment. More generally, a matrix <img src="https://latex.codecogs.com/png.latex?M"> can be calculated which contains all the coefficients for all the compartments. This matrix is defined as <img src="https://latex.codecogs.com/png.latex?M%20=%20V%20%5Ccdot%20%5Ctext%7Bdiag%7D%5Cleft(%5Cfrac%7B%5Cboldsymbol%7B%5Calpha%7D%7D%7B%5Cboldsymbol%7B%5Clambda%7D%7D%5Cright)">, or in code <code>M = eigvecs @ np.diag(alpha / lambdas)</code>. This modal-compartmental coefficient matrix connects the macro rate constants <code>lambda</code> with the compartments. Each row corresponds to a compartment and each column corresponds to a mode. The compartments stand for the spatial relationships (volume) and the modes to the temporal relationships (fast / slow dynamics). Modes come from state-space model theory. Indeed, PK systems are state-space models as well. In the above function, we extract and return coefficients for the central and effect site compartments but we could extract them for all compartments.</p>
+<p>These values are identical to the ones calculated using the Laplace technique and they can be used as-is in the TCI algorithm. Using the Laplace domain transfer function approach, the coefficients emerge from the partial fraction decomposition of the residues.</p>
+<p>The key insight is that this method gives closed form solutions for any linear PKPD model. It can be applied for 1, 2 and 3 compartment models with or without effect site, with or without depot compartment and can be used with models of arbitrary number of compartments for example transit compartment models. The method can be used to fit the PKPD models (as implemented by NONMEM in the ADVAN5 and ADVAN7 routines) and for TCI. Using this technique, it is not necessary to painstakingly derive closed form solutions for particular systems.</p>
+<p>Once you calculated the lambdas and coefficients, you can use the regular STANPUMP algorithm and the model update function below to calculate concentrations for a given compartment over time. Here, <img src="https://latex.codecogs.com/png.latex?A"> is the initial state for each mode and the function returns the new state. This is an <em>ADVANcer</em> in the NONMEM sense. <img src="https://latex.codecogs.com/png.latex?A"> is a vector and the compartment concentration is the sum of the vector.</p>
+<div id="7598e0d1" class="cell" data-execution_count="3">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">def</span> model(A, lambdas, coefs, rate, dt):</span>
+<span id="cb3-2">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">"""</span></span>
+<span id="cb3-3"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    Update compartment amounts after infusion at given rate for time dt.</span></span>
+<span id="cb3-4"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    </span></span>
+<span id="cb3-5"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    This is the discrete-time solution:</span></span>
+<span id="cb3-6"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    A(t+dt) = A(t)·exp(-λ·dt) + c·rate·(1 - exp(-λ·dt))</span></span>
+<span id="cb3-7"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    """</span></span>
+<span id="cb3-8">    decay <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.exp(<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span>lambdas <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> dt)</span>
+<span id="cb3-9">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span> A <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> decay <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> coefs <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> rate <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> (<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> decay)</span></code></pre></div></div>
+</div>
+</section>
+<section id="impulse-response-and-udf" class="level2">
+<h2 class="anchored" data-anchor-id="impulse-response-and-udf">Impulse response and UDF</h2>
+<p>The coefficients together with the lambda values define the model step response which on its own defines the entire dynamics of the model. The <strong>impulse response</strong> coefficients can be obtained by multiplying the coefficients with the lambda values.</p>
+<p>Using the well known modal closed form solution of the 3-compartment model Equation&nbsp;4, we can calculate the time response of a PK model given an input infusion or bolus.</p>
+<p><span id="eq-threecomp"><img src="https://latex.codecogs.com/png.latex?%0A%5Ctext%7BConc%7D(t)%20=%20A%20e%5E%7B-%5Calpha%20t%7D%20+%20B%20e%5E%7B-%5Cbeta%20t%7D%20+%20C%20e%5E%7B-%5Cgamma%20t%7D%0A%5Ctag%7B4%7D"></span></p>
+<div id="9ca8f2a0" class="cell" data-execution_count="4">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">def</span> calculate_impulse_response(lambdas, coefs, t):</span>
+<span id="cb4-2">    A_imp <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> coefs <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> lambdas  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># [L^-1]</span></span>
+<span id="cb4-3">    decay <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.exp(<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span>lambdas[:, np.newaxis] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> t[np.newaxis, :])</span>
+<span id="cb4-4">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span> np.<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">sum</span>(A_imp[:, np.newaxis] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> decay, axis<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>)</span></code></pre></div></div>
+</div>
+<p>This impulse response is very special because it can derive the response to any infusion. It can be used to calculate the UDF. Indeed, in the code below, we define a unit infusion for <code>delta_seconds</code> which is defined as 10 seconds (called <code>pulse</code> below). The UDF is the result of a <strong>convolution</strong> of this unit infusion with the impulse response as shown in Figure&nbsp;1.</p>
+<div id="40e828f5" class="cell" data-execution_count="5">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1">n_points <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2000</span></span>
+<span id="cb5-2">pulse <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.zeros(n_points)</span>
+<span id="cb5-3">pulse[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>:delta_seconds] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span></span>
+<span id="cb5-4"></span>
+<span id="cb5-5">t <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.arange(n_points)</span>
+<span id="cb5-6">uir <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> calculate_impulse_response(lambdas, e_coef, t)</span>
+<span id="cb5-7">udf <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.convolve(uir, pulse, mode<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"full"</span>)</span></code></pre></div></div>
+</div>
+<div id="fig-udf" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-udf-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="https://jaj42.github.io/blog/posts/202603_eigen/udf.png" class="img-fluid figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-udf-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;1: Impulse response of the Eleveld Propofol model for a typical individual (blue), the STANPUMP UDF (dotted green) and convolution of the impulse response with the unit infusion (orange). Note that STANPUMP only calculates the UDF up to the peak.
+</figcaption>
+</figure>
+</div>
+</section>
+<section id="generalized-model-response-through-convolution" class="level2">
+<h2 class="anchored" data-anchor-id="generalized-model-response-through-convolution">Generalized model response through convolution</h2>
+<p>However, we are not limited to calculating the UDF this way. Convolution with the impulse response yields the model response for any input. This technique is called Duhamel’s superposition integral. Figure&nbsp;2 shows the plasma and effect site concentrations obtained from a Propofol infusion starting initially at 150 mg/h then at 20 minutes increased to 300 mg/h, then at 40 minutes increased to 500 mg/h and finally stopped at 100 minutes.</p>
+<div id="fig-infu_regular" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-infu_regular-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="https://jaj42.github.io/blog/posts/202603_eigen/infu_regular.png" class="img-fluid figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-infu_regular-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;2: Eleveld Propofol model plasma and effect site concentration output by convolution of the impulse response with a piecewise constant infusion profile.
+</figcaption>
+</figure>
+</div>
+<p>Using the impulse response convolution, we are not limited to constant or piecewise constant infusion. Let’s imagine, a new crazy syringe pump driver hits the market which uses a sinus infusion pattern. Figure&nbsp;3 shows an infusion which oscillates between 300 and 500 mg/h Propofol infusion in a sinus pattern. We can just as easily calculate the plasma and effect site concentrations of this non linear infusion.</p>
+<div id="fig-infu_sinus" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-infu_sinus-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="https://jaj42.github.io/blog/posts/202603_eigen/infu_sinus.png" class="img-fluid figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-infu_sinus-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;3: Eleveld Propofol model plasma and effect site concentration output by convolution of the impulse response with a sinusoid infusion profile.
+</figcaption>
+</figure>
+</div>
+<p>Finally, the impulse response coefficients can also easily accommodate bolus administration. Figure&nbsp;4 shows plasma and effect site concentration of a typical simulated individual which receives a Propofol bolus of 50mg every 5 minutes for 25 minutes.</p>
+<div id="fig-bolus" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-bolus-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="https://jaj42.github.io/blog/posts/202603_eigen/bolus.png" class="img-fluid figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-bolus-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;4: Eleveld Propofol model plasma and effect site concentration output by modal response to repeated boluses.
+</figcaption>
+</figure>
+</div>
+</section>
+<section id="final-thoughts" class="level2">
+<h2 class="anchored" data-anchor-id="final-thoughts">Final thoughts</h2>
+<p>Anaesthesia is rocket science. Carrying out general anaesthesia is similar to controlling a spacecraft through a turbulent atmosphere. While some prefer to fly manually, modern control algorithms allow optimal flight paths and allow to land the rocket for reuse. The insight that PKPD systems and TCI behave like state space models in physics allows us to generalize our knowledge of these systems, ease calculations and widen potential applications.</p>
+</section>
+<section id="references" class="level2">
+<h2 class="anchored" data-anchor-id="references">References</h2>
+<div id="refs" class="references csl-bib-body">
+<div id="ref-shafer_algorithms_1992" class="csl-entry">
+<div class="csl-left-margin">1. </div><div class="csl-right-inline">Shafer SL, Gregg KM. Algorithms to rapidly achieve and maintain stable drug concentrations at the site of drug effect with a computer-controlled infusion pump. <em>Journal of Pharmacokinetics and Biopharmaceutics</em> [Internet] 1992 [cited 2025 Aug 19]; <strong>20</strong>: 147–69 Available from: <a href="http://link.springer.com/10.1007/BF01070999">http://link.springer.com/10.1007/BF01070999</a></div>
+</div>
+</div>
+
+
+</section>
+
+<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" id="quarto-reuse"><h2 class="anchored quarto-appendix-heading">Reuse</h2><div class="quarto-appendix-contents"><div><a rel="license" href="https://creativecommons.org/licenses/by-nc/4.0/">CC BY-NC 4.0</a></div></div></section><section class="quarto-appendix-contents" id="quarto-citation"><h2 class="anchored quarto-appendix-heading">Citation</h2><div><div class="quarto-appendix-secondary-label">BibTeX citation:</div><pre class="sourceCode code-with-copy quarto-appendix-bibtex"><code class="sourceCode bibtex">@online{joachim2026,
+  author = {Joachim, Jona},
+  title = {TCI {Eigendecomposition}},
+  date = {2026-03-03},
+  url = {https://jaj42.github.io/blog/posts/202602_impulse/index.html},
+  langid = {en}
+}
+</code></pre><div class="quarto-appendix-secondary-label">For attribution, please cite this work as:</div><div id="ref-joachim2026" class="csl-entry quarto-appendix-citeas">
+<div class="">Joachim J. TCI Eigendecomposition [Internet].
+2026. Available from: <a href="https://jaj42.github.io/blog/posts/202602_impulse/index.html">https://jaj42.github.io/blog/posts/202602_impulse/index.html</a></div>
+</div></div></section></div> ]]></description>
+  <category>pharmacometrics</category>
+  <category>tci</category>
+  <guid>https://jaj42.github.io/blog/posts/202603_eigen/</guid>
+  <pubDate>Mon, 02 Mar 2026 23:00:00 GMT</pubDate>
+</item>
 <item>
   <title>TCI - caught in the inner loop</title>
   <dc:creator>Jona Joachim</dc:creator>
