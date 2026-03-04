@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Jona Joachim">
-<meta name="dcterms.date" content="2026-03-03">
+<meta name="dcterms.date" content="2026-03-04">
 
 <title>TCI Eigendecomposition – Jona’s blog</title>
 <style>
@@ -394,7 +394,7 @@ window.Quarto = {
       <div>
       <div class="quarto-title-meta-heading">Published</div>
       <div class="quarto-title-meta-contents">
-        <p class="date">March 3, 2026</p>
+        <p class="date">March 4, 2026</p>
       </div>
     </div>
     
@@ -478,7 +478,7 @@ J = \begin{pmatrix}
 <p>In theory, eigendecomposition can go wrong if the matrix is malformed. I do not think that this is possible for PK systems but it is nevertheless easy to check if the eigendecomposition worked as expected. You can reconstruct the system matrix from the eigenvalue / eigenvector pairs and compare to see if they match. This is done in this function, which will fail if the reconstructed system matrix does not match the original one.</p>
 <p>Once, we have the eigenvalue / eigenvector pairs, we can obtain the model <strong>step response coefficients</strong>. The coefficients characterize the system response, which is the response to a unit infusion. The step response shows how the system responds to an excitation, it shows how plasma / effect site concentration dynamics are driven by the drug.</p>
 <p>You can click the code cell below to expand the function definition.</p>
-<div id="25d192de" class="cell" data-execution_count="1">
+<div id="6eea573c" class="cell" data-execution_count="1">
 <details class="code-fold">
 <summary>Show eigendecomposition function definition</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> eigendecomposition(k10, k12, k13, k21, k31, V1, ke0):</span>
@@ -543,7 +543,7 @@ J = \begin{pmatrix}
 </details>
 </div>
 <p>This function can be used like below to calculate the lambda values and coefficients in one pass.</p>
-<div id="10bc1fc5" class="cell" data-execution_count="2">
+<div id="c6c4da5e" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>lambdas, p_coef, e_coef <span class="op">=</span> eigendecomposition(</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    p.k10, p.k12, p.k13,</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    p.k21, p.k31, p.vc, p.ke0,</span>
@@ -553,7 +553,7 @@ J = \begin{pmatrix}
 <p>These values are identical to the ones calculated using the Laplace technique and they can be used as-is in the TCI algorithm. Using the Laplace domain transfer function approach, the coefficients emerge from the partial fraction decomposition of the residues.</p>
 <p>The key insight is that this method gives closed form solutions for any linear PKPD model. It can be applied for 1, 2 and 3 compartment models with or without effect site, with or without depot compartment and can be used with models of arbitrary number of compartments for example transit compartment models. The method can be used to fit the PKPD models (as implemented by NONMEM in the ADVAN5 and ADVAN7 routines) and for TCI. Using this technique, it is not necessary to painstakingly derive closed form solutions for particular systems.</p>
 <p>Once you calculated the lambdas and coefficients, you can use the regular STANPUMP algorithm and the model update function below to calculate concentrations for a given compartment over time. Here, <span class="math inline">\(A\)</span> is the initial state for each mode and the function returns the new state. This is an <em>ADVANcer</em> in the NONMEM sense. <span class="math inline">\(A\)</span> is a vector and the compartment concentration is the sum of the vector.</p>
-<div id="930864d7" class="cell" data-execution_count="3">
+<div id="6f9c2e81" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> model(A, lambdas, coefs, rate, dt):</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""</span></span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co">    Update compartment amounts after infusion at given rate for time dt.</span></span>
@@ -572,14 +572,14 @@ J = \begin{pmatrix}
 <p><span id="eq-threecomp"><span class="math display">\[
 \text{Conc}(t) = A e^{-\alpha t} + B e^{-\beta t} + C e^{-\gamma t}
 \tag{4}\]</span></span></p>
-<div id="30e57156" class="cell" data-execution_count="4">
+<div id="b74e4023" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> calculate_impulse_response(lambdas, coefs, t):</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    A_imp <span class="op">=</span> coefs <span class="op">*</span> lambdas  <span class="co"># [L^-1]</span></span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    decay <span class="op">=</span> np.exp(<span class="op">-</span>lambdas[:, np.newaxis] <span class="op">*</span> t[np.newaxis, :])</span>
 <span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> np.<span class="bu">sum</span>(A_imp[:, np.newaxis] <span class="op">*</span> decay, axis<span class="op">=</span><span class="dv">0</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>This impulse response is very special because it can derive the response to any infusion. It can be used to calculate the UDF. Indeed, in the code below, we define a unit infusion for <code>delta_seconds</code> which is defined as 10 seconds (called <code>pulse</code> below). The UDF is the result of a <strong>convolution</strong> of this unit infusion with the impulse response as shown in <a href="#fig-udf" class="quarto-xref">Figure&nbsp;1</a>.</p>
-<div id="e1374fb7" class="cell" data-execution_count="5">
+<div id="cb507bfb" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>n_points <span class="op">=</span> <span class="dv">2000</span></span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>pulse <span class="op">=</span> np.zeros(n_points)</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>pulse[<span class="dv">0</span>:delta_seconds] <span class="op">=</span> <span class="dv">1</span></span>
@@ -653,7 +653,7 @@ Figure&nbsp;4: Eleveld Propofol model plasma and effect site concentration outpu
 <div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" id="quarto-reuse"><h2 class="anchored quarto-appendix-heading">Reuse</h2><div class="quarto-appendix-contents"><div><a rel="license" href="https://creativecommons.org/licenses/by-nc/4.0/">CC BY-NC 4.0</a></div></div></section><section class="quarto-appendix-contents" id="quarto-citation"><h2 class="anchored quarto-appendix-heading">Citation</h2><div><div class="quarto-appendix-secondary-label">BibTeX citation:</div><pre class="sourceCode code-with-copy quarto-appendix-bibtex"><code class="sourceCode bibtex">@online{joachim2026,
   author = {Joachim, Jona},
   title = {TCI {Eigendecomposition}},
-  date = {2026-03-03},
+  date = {2026-03-04},
   url = {https://jaj42.github.io/blog/posts/202603_eigen/index.html},
   langid = {en}
 }

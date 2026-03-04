@@ -1,7 +1,7 @@
 ---
 title: TCI Eigendecomposition
 author: "Jona Joachim"
-date: "2026-03-03"
+date: "2026-03-04"
 categories: [pharmacometrics, tci]
 bibliography: pkpd.bib
 csl: british-journal-of-anaesthesia.csl
