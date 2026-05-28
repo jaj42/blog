@@ -210,7 +210,7 @@ $$ {#eq-threecomp}
 #| eval: false
 def calculate_impulse_response(lambdas, coefs, t):
     A_imp = coefs * lambdas  # [L^-1]
-    decay = np.exp(-lambdas[:, np.newaxis] * t[np.newaxis, :])
+    decay = np.exp(np.outer(-lambdas, t))
     return np.sum(A_imp[:, np.newaxis] * decay, axis=0)
 ```
 
