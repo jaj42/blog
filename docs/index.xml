@@ -12,7 +12,7 @@
 <generator>quarto-1.8.27</generator>
 <lastBuildDate>Tue, 30 Jun 2026 22:00:00 GMT</lastBuildDate>
 <item>
-  <title>The flat prior that wasn’t</title>
+  <title>The Flat Prior That Wasn’t</title>
   <dc:creator>Jona Joachim</dc:creator>
   <link>https://jaj42.github.io/blog/posts/202607_haldane/</link>
   <description><![CDATA[ 
@@ -326,7 +326,7 @@ Figure&nbsp;6: Same uninformative data with different priors. <img src="https://
 
 <div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" id="quarto-reuse"><h2 class="anchored quarto-appendix-heading">Reuse</h2><div class="quarto-appendix-contents"><div><a rel="license" href="https://creativecommons.org/licenses/by-nc/4.0/">CC BY-NC 4.0</a></div></div></section><section class="quarto-appendix-contents" id="quarto-citation"><h2 class="anchored quarto-appendix-heading">Citation</h2><div><div class="quarto-appendix-secondary-label">BibTeX citation:</div><pre class="sourceCode code-with-copy quarto-appendix-bibtex"><code class="sourceCode bibtex">@online{joachim2026,
   author = {Joachim, Jona},
-  title = {The Flat Prior That Wasn’t},
+  title = {The {Flat} {Prior} {That} {Wasn’t}},
   date = {2026-07-01},
   url = {https://jaj42.github.io/blog/posts/202607_haldane/index.html},
   langid = {en}
