@@ -2,6 +2,7 @@
   {
     "listing": "/index.html",
     "items": [
+      "/posts/202607_haldane/index.html",
       "/posts/202605_nonmem-skill/index.html",
       "/posts/202603_eigen/index.html",
       "/posts/202602_moderntci/index.html",
