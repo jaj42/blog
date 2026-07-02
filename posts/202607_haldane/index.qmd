@@ -161,8 +161,7 @@ with a variance of 0.5 was added (informative data) and in the other scenario,
 the variance was increased to 50 (uninformative data). The resulting datasets
 can be seen in @fig-data.
 
-The two resulting datasets were analysed with NONMEM using FOCEI and PyMC using
-Hamiltonian Monte Carlo (NUTS).
+The two resulting datasets were analysed with NONMEM using First Order (FO) approximation and PyMC using Hamiltonian Monte Carlo (NUTS).
 
 ![Source data. Left: informative: the points track $y = 5x$. Right: uninformative: pure scatter, the true line is hardly visible near zero.](source_data.png){#fig-data}
 

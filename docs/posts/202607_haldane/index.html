@@ -470,7 +470,7 @@ Figure&nbsp;1: Probability density function of the Haldane prior. The probabilit
 <p>As an illustration, I ran a simulation. The model is a simple linear regression with a single parameter (slope).</p>
 <p>The slope is constrained to <span class="math inline">\((0, 10)\)</span> and the true value <span class="math inline">\(\theta = 5\)</span> sits at the interval midpoint.</p>
 <p>Twenty points were sampled with random noise. In one scenario, a random noise with a variance of 0.5 was added (informative data) and in the other scenario, the variance was increased to 50 (uninformative data). The resulting datasets can be seen in <a href="#fig-data" class="quarto-xref">Figure&nbsp;2</a>.</p>
-<p>The two resulting datasets were analysed with NONMEM using FOCEI and PyMC using Hamiltonian Monte Carlo (NUTS).</p>
+<p>The two resulting datasets were analysed with NONMEM using First Order (FO) approximation and PyMC using Hamiltonian Monte Carlo (NUTS).</p>
 <div id="fig-data" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-data-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
