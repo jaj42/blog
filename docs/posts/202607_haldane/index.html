@@ -79,9 +79,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="../../site_libs/quarto-html/quarto-syntax-highlighting-ed96de9b727972fe78a7b5d16c58bf87.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
 <script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../../site_libs/bootstrap/bootstrap-960d9d362f81d399278ec3e29b622b37.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
-<link href="../../site_libs/bootstrap/bootstrap-dark-7c8e055e70d4b6a1e9086eb41eca0607.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
-<link href="../../site_libs/bootstrap/bootstrap-960d9d362f81d399278ec3e29b622b37.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-ffa9a6279353761231ec249df0a7fdd3.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-dark-bae33c85dea990b555726d9e885fc0e5.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="../../site_libs/bootstrap/bootstrap-ffa9a6279353761231ec249df0a7fdd3.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -537,8 +537,8 @@ Table&nbsp;1: Summary of the NONMEM runs on both datasets
 </div>
 </figure>
 </div>
-<p>The informative fit converges in 21 evaluations to the interior truth. The uninformative fit dives to the lower bound within ~10 iterations, and gets stuck there until MAXEVAL kicks in. The transformed-scale gradient stays pinned at a tiny scale the whole way, the vanishing gradient of <a href="#sec-transform" class="quarto-xref">Section&nbsp;1</a>.</p>
-<p><a href="#fig-nonmem-diag" class="quarto-xref">Figure&nbsp;3</a> shows both runs iteration by iteration. The informative optimiser settles at the interior truth in a handful of steps with a gradient that starts at <span class="math inline">\(3.8\)</span> and decays to zero. With the uninformative dataset, the optimiser plunges to the lower bound, even though the parameter was initialised at the true value.</p>
+<p>The informative fit converges in 21 evaluations towards the true value. The uninformative fit dives to the lower bound within ~10 iterations, and gets stuck there until MAXEVAL kicks in. The transformed-scale gradient stays pinned at a tiny scale the whole way, the vanishing gradient of <a href="#sec-transform" class="quarto-xref">Section&nbsp;1</a>.</p>
+<p><a href="#fig-nonmem-diag" class="quarto-xref">Figure&nbsp;3</a> shows both runs iteration by iteration. The informative optimiser settles around the true value in a handful of steps with a gradient that starts at <span class="math inline">\(3.8\)</span> and decays to zero. With the uninformative dataset, the optimiser plunges to the lower bound, even though the parameter was initialised at the true value.</p>
 <div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -558,7 +558,7 @@ Table&nbsp;1: Summary of the NONMEM runs on both datasets
 <img src="nonmem_diagnostics.png" class="img-fluid figure-img">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-nonmem-diag-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;3: NONMEM optimiser traces. Top: the slope estimate vs iteration. Informative (left) converges at the interior truth; uninformative (right) dives to the lower bound. Bottom: the gradient of the objective on the transformed scale.
+Figure&nbsp;3: NONMEM optimiser traces. Top: the slope estimate vs iteration. Informative (left) converges towards the true value; uninformative (right) dives to the lower bound. Bottom: the gradient of the objective on the transformed scale.
 </figcaption>
 </figure>
 </div>
